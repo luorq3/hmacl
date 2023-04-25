@@ -1,0 +1,46 @@
+unit:
+  warship: &warship
+    hp: 10
+    sight_range: 3
+    dmg: 5
+  fighter: &fighter
+    hp: 8
+    sight_range: 2
+    dmg: 3
+  scout_drone: &scout_drone
+    hp: 5
+    sight_range: 4
+  mobile_fort: &mobile_fort
+    hp: 10
+    sight_range: 3
+    dmg: 5
+
+map_size: [6, 6]
+pos_init_type: "specified"
+reward_type: "dense"
+obs_with_agent_id: False
+offensive_agent:
+  warship:
+    -
+      pos: [ 3, 1 ]
+      <<: *warship
+  fighter:
+    -
+      pos: [0, 0]
+      <<: *fighter
+  scout_drone:
+    -
+      pos: [ 5, 0 ]
+      <<: *scout_drone
+
+defensive_bot:
+  mobile_fort:
+    - pos: [ 2, 4 ]
+      <<: *mobile_fort
+  fighter:
+    - pos: [ 5, 5 ]
+      <<: *fighter
+  scout_drone:
+    - pos: [ 0, 5 ]
+      <<: *scout_drone
+

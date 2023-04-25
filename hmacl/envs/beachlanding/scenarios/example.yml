@@ -1,0 +1,75 @@
+# 一方的单位数量不可以超过map_size[0]
+
+map_size: [12, 12]
+pos_init_type: "specified"
+reward_type: "dense"
+obs_with_agent_id: True
+offensive_agent:
+  warship:
+    -
+      pos: [7, 1]
+      hp: 10
+      sight_range: 5
+      dmg: 5
+  fighter:
+    -
+      pos: [4, 0]
+      hp: 8
+      sight_range: 6
+      dmg: 3
+  scout_drone:
+    -
+      pos: [ 10, 0 ]
+      hp: 5
+      sight_range: 8
+
+offensive_bot:
+  warship:
+    - pos: [ 1, 1 ]
+      hp: 10
+      sight_range: 5
+      dmg: 5
+  fighter:
+    -
+      pos: [ 11, 1 ]
+      hp: 8
+      sight_range: 6
+      dmg: 3
+  scout_drone:
+    - pos: [ 5, 2 ]
+      hp: 5
+      sight_range: 8
+
+defensive_agent:
+  mobile_fort:
+    -
+      pos: [2, 8]
+      hp: 10
+      sight_range: 6
+      dmg: 5
+  fighter:
+    - pos: [ 5, 11 ]
+      hp: 8
+      sight_range: 6
+      dmg: 3
+  scout_drone:
+    - pos: [ 1, 10 ]
+      hp: 5
+      sight_range: 8
+
+defensive_bot:
+  mobile_fort:
+    - pos: [ 8, 8 ]
+      hp: 10
+      sight_range: 6
+      dmg: 5
+  fighter:
+    - pos: [ 11, 11 ]
+      hp: 8
+      sight_range: 6
+      dmg: 3
+  scout_drone:
+    - pos: [ 7, 10 ]
+      hp: 5
+      sight_range: 8
+
