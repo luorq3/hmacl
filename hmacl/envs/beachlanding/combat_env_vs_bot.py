@@ -15,7 +15,10 @@ class CombatEnv(MultiAgentEnv):
         self.camp = config.camp
         self.key = config.scenario
         self.episode_limit = config.time_limit
-        self.expand_degree = config.expand_degree
+        try:
+            self.expand_degree = config.expand_degree
+        except AttributeError:
+            self.expand_degree = None
 
         # stats
         self._episode_count = 0
@@ -139,6 +142,7 @@ class CombatEnv(MultiAgentEnv):
         return stats
 
     def expand(self):
+        assert self.expand_degree is not None, "Expand degree is not assigned."
         self._env.expand(self.expand_degree)
 
     def render(self):
