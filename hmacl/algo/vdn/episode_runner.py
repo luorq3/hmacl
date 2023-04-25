@@ -3,7 +3,7 @@ import numpy as np
 
 class EpisodeRunner:
 
-    def __init__(self, config, env, eval_env, num_agents, hidden_size):
+    def __init__(self, env, eval_env, policies, agents_policies, policies_agents, num_agents, hidden_size):
         self.env = env
         self.eval_env = eval_env
         self.episode_limit = self.env.episode_limit
@@ -15,10 +15,10 @@ class EpisodeRunner:
         self.num_envs = 1  # episode runner fix to 1
         self.hidden_size = hidden_size
 
-        self.policy_agents = {}  # policies => agents, 1=>more
-        self.policies = []  # all policies
-        self.policy_ids = []  # id of all policies
-        self.agents_policies = {}  # agents => policies
+        self.policy_agents = policies_agents  # policies => agents, 1=>more
+        self.policies = policies  # all policies
+        self.agents_policies = agents_policies  # agents => policies
+        self.policy_ids = self.policy_agents.keys()  # id of all policies
 
         # self.policy_info = config["policy_info"]
         # self.policy_ids = sorted(list(self.policy_info.keys()))
@@ -63,6 +63,7 @@ class EpisodeRunner:
         episode_dones_env = {p_id: np.ones((self.episode_limit, self.num_envs, 1), dtype=np.float32) for p_id in self.policy_ids}
         episode_avail_acts = {p_id: None for p_id in self.policy_ids}
         last_acts = {p_id: np.zeros((self.num_envs, len(self.policy_agents[p_id]), self.policies[p_id].act_dim), dtype=np.float32) for p_id in self.policy_ids}
+        rnn_states_batch = {p_id: np.zeros((self.num_envs, len(self.policy_agents[p_id]), self.policies[p_id].act_dim), dtype=np.float32) for p_id in self.policy_ids}
 
         terminated = False
         episode_return = 0
@@ -73,6 +74,10 @@ class EpisodeRunner:
 
             for agent_id, p_id in self.agents_policies.items():
                 policy = self.policies[p_id]
+                # [30] 也许需要叠加一下才能使用网络
+                agent_obs = np.stack(obs[agent_id])
+                state = np.concatenate([obs[0, i] for i in range(self.num_agents)]).reshape(self.num_envs, -1).astype(np.float32)
+
 
 
             # Pass the entire batch of experiences up till now to the agents
