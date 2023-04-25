@@ -15,6 +15,7 @@ class CombatEnv(MultiAgentEnv):
         self.camp = config.camp
         self.key = config.scenario
         self.episode_limit = config.time_limit
+        self.expand_degree = config.expand_degree
 
         # stats
         self._episode_count = 0
@@ -136,6 +137,9 @@ class CombatEnv(MultiAgentEnv):
             "draw_rate": self.timeouts / self.battles_game
         }
         return stats
+
+    def expand(self):
+        self._env.expand(self.expand_degree)
 
     def render(self):
         pass
