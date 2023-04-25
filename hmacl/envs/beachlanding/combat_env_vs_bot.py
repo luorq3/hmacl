@@ -50,7 +50,7 @@ class CombatEnv(MultiAgentEnv):
     def step(self, actions):
         action_int = [int(a) for a in actions]
 
-        new_info = {"battle_won": False}
+        new_info = {}
 
         action_dict = {agent_id: action for agent_id, action in zip(self.agent_idx_dict.values(), action_int)}
         rewards, done, info = self._env.step(action_dict)
@@ -60,6 +60,7 @@ class CombatEnv(MultiAgentEnv):
 
         reward = 0
         if done:
+            new_info["battle_won"] = False
             self.battles_game += 1
             if info["of_win"]:
                 if info["de_win"]:
@@ -75,6 +76,7 @@ class CombatEnv(MultiAgentEnv):
         elif self._episode_steps >= self.episode_limit:
             done = True
             new_info["episode_limit"] = True
+            new_info["battle_won"] = False
             self.battles_game += 1
             self.timeouts += 1
 
@@ -135,12 +137,23 @@ class CombatEnv(MultiAgentEnv):
             "battles_won": self.battles_won,
             "battles_game": self.battles_game,
             "battles_draw": self.timeouts,
-            "win_rate": self.battles_won / self.battles_game,
+            "win_rate": (self.battles_won / self.battles_game) if self.battles_game != 0 else 0,
             "timeouts": self.timeouts,
-            "draw_rate": self.timeouts / self.battles_game
+            "draw_rate": (self.timeouts / self.battles_game) if self.battles_game != 0 else 0,
+            "loss_rate": ((self.battles_game - self.battles_won) / self.battles_game) if self.battles_game != 0 else 0,
         }
         return stats
 
+    # for cpi eval
+    def clean_stats(self):
+        self._episode_count = 0
+        self._episode_steps = 0
+        self._total_steps = 0
+        self.battles_won = 0
+        self.battles_game = 0
+        self.timeouts = 0
+
+    # It will take effect only AFTER reset!
     def expand(self):
         assert self.expand_degree is not None, "Expand degree is not assigned."
         self._env.expand(self.expand_degree)
