@@ -31,6 +31,15 @@ class CombatEnv(MultiAgentEnv):
         self._env = CombatEnvCore(config)
         self._init()
 
+    # get mapping from agent to type
+    def get_agents_types(self):
+        agents_types = {}
+        for agent_id, unique_id in self.agent_idx_dict.items():
+            unit = self.get_unit_by_unique_id(unique_id)
+            agents_types[agent_id] = unit.agent_type
+
+        return agents_types
+
     def get_unit_by_unique_id(self, unique_id):
         return self._env.units_dict.get(unique_id)
 
