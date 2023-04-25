@@ -4,8 +4,8 @@ import numpy as np
 
 from argparse import Namespace
 
-from src.beachlanding.multiagentenv import MultiAgentEnv
-from src.beachlanding.combat_env_core import CombatEnvCore
+from hmacl.envs.beachlanding.multiagentenv import MultiAgentEnv
+from hmacl.envs.beachlanding.combat_env_core import CombatEnvCore
 
 
 class CombatEnv(MultiAgentEnv):

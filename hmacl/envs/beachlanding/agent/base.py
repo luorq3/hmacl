@@ -4,7 +4,7 @@
 2: mobile fort
 3: scout drone
 """
-from src.beachlanding.agent.util import merge_visible_units
+from hmacl.envs.beachlanding.agent.util import merge_visible_units
 from gym import spaces
 import numpy as np
 

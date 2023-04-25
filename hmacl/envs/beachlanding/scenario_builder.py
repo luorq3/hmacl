@@ -1,12 +1,12 @@
-from src import logging
 import random
 import sys
 
 import numpy as np
 from gym import spaces
+import logging
 
-from src.beachlanding.util import load_scenario_conf
-from src.beachlanding.agent import *
+from hmacl.envs.beachlanding.util import load_scenario_conf
+from hmacl.envs.beachlanding.agent import *
 
 
 def build_scenario(config):

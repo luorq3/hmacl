@@ -1,5 +1,5 @@
 import numpy as np
-from src.beachlanding.scenario_builder import build_scenario
+from hmacl.envs.beachlanding.scenario_builder import build_scenario
 
 
 class CombatEnvCore:
