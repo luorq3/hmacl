@@ -1,21 +1,21 @@
 unit:
   warship: &warship
-    hp: 8
-    sight_range: 8
-    dmg: 3
+    hp: 10
+    sight_range: 20
+    dmg: 5
   fighter: &fighter
-    hp: 6
-    sight_range: 5
+    hp: 7
+    sight_range: 10
     dmg: 3
   scout_drone: &scout_drone
     hp: 5
-    sight_range: 10
+    sight_range: 30
   mobile_fort: &mobile_fort
     hp: 8
-    sight_range: 8
-    dmg: 3
+    sight_range: 10
+    dmg: 5
 
-map_size: [ 50, 50 ]
+map_size: [ 12, 12 ]
 pos_init_type: "random"
 reward_type: "dense"
 obs_with_agent_id: False
@@ -26,15 +26,22 @@ offensive_agent:
   fighter:
     - <<: *fighter
     - <<: *fighter
+    - <<: *fighter
   scout_drone:
+    - <<: *scout_drone
     - <<: *scout_drone
 
 defensive_bot:
   mobile_fort:
     - <<: *mobile_fort
     - <<: *mobile_fort
+    - <<: *mobile_fort
+    - <<: *mobile_fort
   fighter:
     - <<: *fighter
     - <<: *fighter
+    - <<: *fighter
+    - <<: *fighter
   scout_drone:
+    - <<: *scout_drone
     - <<: *scout_drone
