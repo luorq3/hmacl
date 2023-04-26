@@ -39,7 +39,7 @@ class Logger(logging.Logger):
         self.tb_logger = log_value
         self.use_tb = True
 
-    def log_stat(self, key, value, t, to_sacred=True):
+    def log_stat(self, key, value, t):
         self.stats[key].append((t, value))
 
         if self.use_tb:
@@ -78,8 +78,8 @@ def set_logger():
     return logger
 
 
-log = Logger(project_name)
 def get_logger():
+    log = Logger(project_name)
     return log
 
 

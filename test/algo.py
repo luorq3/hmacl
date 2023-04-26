@@ -1,7 +1,10 @@
 from hmacl.algo.algo import Algo
+from hmacl.config import parser
+from hmacl.utils.logging_ import get_logger
 
 
-algo = Algo("m2ale", "vdn_ns", {})
+args = parser.parse_args()
+algo = Algo(args, get_logger())
 algo.run()
 
 
