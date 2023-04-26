@@ -2,7 +2,7 @@ import numpy as np
 from hmacl.envs.m2ale.scenario_builder import build_scenario
 
 
-class CombatEnvCore:
+class M2ALECore:
     def __init__(self, config):
         self._config = config
         self._init()

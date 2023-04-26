@@ -5,13 +5,13 @@ import numpy as np
 from argparse import Namespace
 
 from hmacl.envs.m2ale.multiagentenv import MultiAgentEnv
-from hmacl.envs.m2ale.m2ale_core import CombatEnvCore
+from hmacl.envs.m2ale.m2ale_core import M2ALECore
 
 
-class CombatEnv(MultiAgentEnv):
+class M2ALE(MultiAgentEnv):
     def __init__(self, **kwargs):
         config = Namespace(**kwargs)
-        super(CombatEnv, self).__init__()
+        super(M2ALE, self).__init__()
         self.camp = config.camp
         self.key = config.scenario
         self.episode_limit = config.time_limit
@@ -28,7 +28,7 @@ class CombatEnv(MultiAgentEnv):
         self.battles_game = 0
         self.timeouts = 0
 
-        self._env = CombatEnvCore(config)
+        self._env = M2ALECore(config)
         self._init()
 
     # get mapping from agent to type

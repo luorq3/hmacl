@@ -1,6 +1,6 @@
 import numpy as np
 from argparse import ArgumentParser
-from hmacl.envs.m2ale.m2ale_agent_vs_bot import CombatEnv
+from hmacl.envs.m2ale.m2ale_agent_vs_bot import M2ALE
 
 parser = ArgumentParser()
 parser.add_argument("--scenario", type=str, default="5u_vs_5u")
@@ -11,7 +11,7 @@ parser.add_argument("--map_size", type=list, default=[10, 10])
 parser.add_argument("--expand_degree", type=int, default=5)
 config = parser.parse_args()
 
-env = CombatEnv(**config.__dict__)
+env = M2ALE(**config.__dict__)
 env.reset()
 num_agents = 5
 

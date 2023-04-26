@@ -3,7 +3,7 @@ from argparse import ArgumentParser
 
 import numpy as np
 
-from hmacl.envs.m2ale.m2ale_agent_vs_bot import CombatEnv
+from hmacl.envs.m2ale.m2ale_agent_vs_bot import M2ALE
 
 
 parser = ArgumentParser()
@@ -12,7 +12,7 @@ parser.add_argument("--camp", type=str, default="offensive")
 parser.add_argument("--reward_type", type=str, default="dense")
 config = parser.parse_args()
 
-env = CombatEnv(**dict(config))
+env = M2ALE(**dict(config))
 env.reset()
 agents = env.agent_idx_dict
 
