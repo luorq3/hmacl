@@ -1,4 +1,4 @@
-from hmacl.algo.main import main
+from hmacl.algo.run import run
 
 
-main("gymma", "vdn_ns")
+run("vdn_ns")

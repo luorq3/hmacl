@@ -1,73 +1,15 @@
-import datetime
 import os
-import pprint
 import time
-import threading
+import yaml
 import torch as th
-from types import SimpleNamespace as SN
-from utils.logging import Logger
 from utils.timehelper import time_left, time_str
-from os.path import dirname, abspath
+import collections
 
 from learners import REGISTRY as le_REGISTRY
 from runners import REGISTRY as r_REGISTRY
 from controllers import REGISTRY as mac_REGISTRY
 from components.episode_buffer import ReplayBuffer
 from components.transforms import OneHot
-
-
-def run(_run, _config, _log):
-
-    # check args sanity
-    _config = args_sanity_check(_config, _log)
-
-    args = SN(**_config)
-    args.device = "cuda" if args.use_cuda else "cpu"
-
-    # setup loggers
-    logger = Logger(_log)
-
-    _log.info("Experiment Parameters:")
-    experiment_params = pprint.pformat(_config, indent=4, width=1)
-    _log.info("\n\n" + experiment_params + "\n")
-
-    # configure tensorboard logger
-    # unique_token = "{}__{}".format(args.name, datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
-
-    try:
-        map_name = _config["env_args"]["map_name"]
-    except:
-        map_name = _config["env_args"]["key"]
-    unique_token = f"{_config['name']}_seed{_config['seed']}_{map_name}_{datetime.datetime.now()}"
-
-    args.unique_token = unique_token
-    if args.use_tensorboard:
-        tb_logs_direc = os.path.join(
-            dirname(dirname(abspath(__file__))), "results", "tb_logs"
-        )
-        tb_exp_direc = os.path.join(tb_logs_direc, "{}").format(unique_token)
-        logger.setup_tb(tb_exp_direc)
-
-    # sacred is on by default
-    logger.setup_sacred(_run)
-
-    # Run and train
-    run_sequential(args=args, logger=logger)
-
-    # Clean up after finishing
-    print("Exiting Main")
-
-    print("Stopping all threads")
-    for t in threading.enumerate():
-        if t.name != "MainThread":
-            print("Thread {} is alive! Is daemon: {}".format(t.name, t.daemon))
-            t.join(timeout=1)
-            print("Thread joined")
-
-    print("Exiting script")
-
-    # Making sure framework really exits
-    # os._exit(os.EX_OK)
 
 
 def evaluate_sequential(args, runner):
@@ -261,3 +203,24 @@ def args_sanity_check(config, _log):
         ) * config["batch_size_run"]
 
     return config
+
+
+def _get_config(config_name, subfolder):
+
+    if config_name is not None:
+        with open(os.path.join(os.path.dirname(__file__), "config", subfolder, "{}.yaml".format(config_name)),
+                  "r") as f:
+            try:
+                config_dict = yaml.load(f, Loader=yaml.FullLoader)
+            except yaml.YAMLError as exc:
+                assert False, "{}.yaml error: {}".format(config_name, exc)
+        return config_dict
+
+
+def recursive_dict_update(d, u):
+    for k, v in u.items():
+        if isinstance(v, collections.Mapping):
+            d[k] = recursive_dict_update(d.get(k, {}), v)
+        else:
+            d[k] = v
+    return d
