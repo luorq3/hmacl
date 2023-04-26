@@ -1,29 +1,20 @@
 import os
 import time
-import yaml
 import torch as th
 from utils.timehelper import time_left, time_str
-import collections
-from types import SimpleNamespace as sn
 
 from learners import REGISTRY as le_REGISTRY
 from runners import REGISTRY as r_REGISTRY
 from controllers import REGISTRY as mac_REGISTRY
 from components.episode_buffer import ReplayBuffer
 from components.transforms import OneHot
-from hmacl.utils.logging_ import get_logger
 
 
 class Algo:
 
-    def __init__(self, env_config_name, algo_config_name, params):
-        self.logger = get_logger()
-        config_dict = load_config_dict(env_config_name, algo_config_name, params)
-        args_sanity_check(config_dict, self.logger)
-        args = sn(**config_dict)
-        args.device = "cuda" if args.use_cuda else "cpu"
-
+    def __init__(self, args, logger):
         self.args = args
+        self.logger = logger
 
         # Init runner so we can get env info
         self.runner = r_REGISTRY[self.args.runner](args=self.args, logger=self.logger)
@@ -102,7 +93,7 @@ class Algo:
 
             if self.args.evaluate or self.args.save_replay:
                 self.runner.log_train_stats_t = self.runner.t_env
-                self.evaluate_sequential(self.runner)
+                self.evaluate_sequential()
                 self.logger.log_stat("episode", self.runner.t_env, self.runner.t_env)
                 self.logger.print_recent_stats()
                 self.logger.console_logger.info("Finished Evaluation")
@@ -201,59 +192,3 @@ class Algo:
             self.runner.save_replay()
 
         self.runner.close_env()
-
-
-def load_config_dict(env_config_name, algo_config_name, params):
-    with open(os.path.join(os.path.dirname(__file__), "config", "default.yaml"), "r") as f:
-        try:
-            config_dict = yaml.load(f, Loader=yaml.FullLoader)
-        except yaml.YAMLError as exc:
-            assert False, "default.yaml error: {}".format(exc)
-    env_config = _get_config(env_config_name, "envs")
-    alg_config = _get_config(algo_config_name, "algs")
-    config_dict = recursive_dict_update(config_dict, env_config)
-    config_dict = recursive_dict_update(config_dict, alg_config)
-
-    # merge params and args
-    for k, v in params.items():
-        config_dict[k] = v
-
-    return config_dict
-
-
-def args_sanity_check(config, _log):
-
-    # set CUDA flags
-    # config["use_cuda"] = True # Use cuda whenever possible!
-    if config["use_cuda"] and not th.cuda.is_available():
-        config["use_cuda"] = False
-        _log.warning(
-            "CUDA flag use_cuda was switched OFF automatically because no CUDA devices are available!"
-        )
-
-    if config["test_nepisode"] < config["batch_size_run"]:
-        config["test_nepisode"] = config["batch_size_run"]
-    else:
-        config["test_nepisode"] = (
-            config["test_nepisode"] // config["batch_size_run"]
-        ) * config["batch_size_run"]
-
-    return config
-
-def _get_config(config_name, subfolder):
-
-    if config_name is not None:
-        with open(os.path.join(os.path.dirname(__file__), "config", subfolder, "{}.yaml".format(config_name)), "r") as f:
-            try:
-                config_dict = yaml.load(f, Loader=yaml.FullLoader)
-            except yaml.YAMLError as exc:
-                assert False, "{}.yaml error: {}".format(config_name, exc)
-        return config_dict
-
-def recursive_dict_update(d, u):
-    for k, v in u.items():
-        if isinstance(v, collections.Mapping):
-            d[k] = recursive_dict_update(d.get(k, {}), v)
-        else:
-            d[k] = v
-    return d
