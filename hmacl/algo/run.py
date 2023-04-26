@@ -139,6 +139,7 @@ def run_sequential(args, logger):
     # start training
     episode = 0
     last_test_T = -args.test_interval - 1
+    last_eval_T = -args.eval_interval - 1
     last_log_T = 0
     model_save_time = 0
 
@@ -183,6 +184,13 @@ def run_sequential(args, logger):
             last_test_T = runner.t_env
             for _ in range(n_test_runs):
                 runner.run(test_mode=True)
+
+        # Execute evaluate in target task once in a while
+        n_eval_runs = max(1, args.eval_nepisode // runner.batch_size)
+        if (runner.t_env - last_eval_T) / args.eval_interval >= 1.0:
+            last_eval_T = runner.t_env
+            for _ in range(n_eval_runs):
+                runner.run(test_mode=True, test_tag=True)
 
         if args.save_model and (
             runner.t_env - model_save_time >= args.save_model_interval
