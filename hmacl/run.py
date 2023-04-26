@@ -1,20 +1,24 @@
+import argparse
 
-import numpy as np
-
-
-class Task:
-
-    def __init__(self, task_id, env_name, scenario, **kwargs):
-        self.id = task_id
-        self.env = env_name
-        self.scenario = scenario
-        for k, w in kwargs.items():
-            setattr(self, k, w)
+from hmacl.algo import Algo
+from hmacl.cpi import CPI
+from hmacl.stg import STG
 
 
-def main():
-    pass
+def main(args):
+
+    env = args.env
+    scenario = args.scenario
+
+    stg = STG(env, scenario, **args)
+
+    n_timesteps = args.n_timesteps
+    t = 0
+
+
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser()
+    args = parser.parse_args()
+    main(args)
