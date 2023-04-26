@@ -13,9 +13,9 @@ from hmacl.utils.logging_ import get_logger
 
 def main(all_args, _log):
 
+    algo = Algo(all_args, _log)
     stg = STG(all_args.env, all_args.scenario, **all_args)
 
-    algo = Algo(all_args, _log)
     cpi = CPI(all_args.target_task, all_args.ps_type, all_args.update_type, **all_args)
 
     n_timesteps = all_args.n_timesteps
@@ -34,8 +34,8 @@ def main(all_args, _log):
 
 
 def load_config_dict():
-    env_config_name = args.env_config_name
-    algo_config_name = args.algo_config_name
+    env_config_name = args.env
+    algo_config_name = args.name
     with open(os.path.join(os.path.dirname(__file__), "algo", "config", "default.yaml"), "r") as f:
         try:
             config_dict = yaml.load(f, Loader=yaml.FullLoader)
@@ -47,7 +47,7 @@ def load_config_dict():
     config_dict = recursive_dict_update(config_dict, alg_config)
 
     # merge params and args
-    for k, v in args.__dict__:
+    for k, v in args.__dict__.items():
         config_dict[k] = v
 
     return config_dict

@@ -1,9 +1,11 @@
 from argparse import ArgumentParser
 
 
-parser = ArgumentParser("HMACL")
-parser.add_argument("--env_config_name", type=str, default="m2ale", help="")
-parser.add_argument("--algo_config_name", type=str, default="vdn_ns", help="")
+parser = ArgumentParser("HMACL", add_help=False)
+parser.add_argument("--env", type=str, default="m2ale", help="")
+parser.add_argument("--name", type=str, default="vdn_ns", help="")
+# todo 层级放置到env_args下
+# parser.add_argument("--map_size", type=list, default=[33, 33], help="")
 # parser.add_argument("--num_agents", type=int, default=3, help="Number of agents")
 # parser.add_argument("--wandb_suffix", type=str, default="-", help="A suffix append to last of wnadb name")
 # parser.add_argument("--env")

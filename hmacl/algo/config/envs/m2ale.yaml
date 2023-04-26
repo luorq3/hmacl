@@ -5,6 +5,8 @@ env_args:
   time_limit: 200
   camp: "offensive"
   reward_type: "dense"
+  map_size: [10, 10]
+  tag_map_size: [50, 50]
 
 test_greedy: True
 test_nepisode: 1
