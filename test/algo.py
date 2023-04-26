@@ -1,4 +1,4 @@
-from hmacl.algo.run import run
+from hmacl.algo.Algo import run
 
 
 params = {
