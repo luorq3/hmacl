@@ -1,6 +1,6 @@
 from functools import partial
-from hmacl.envs.beachlanding.combat_env_vs_bot import CombatEnv
-from hmacl.envs.beachlanding.multiagentenv import MultiAgentEnv
+from hmacl.envs.m2ale.m2ale_agent_vs_bot import CombatEnv
+from hmacl.envs.m2ale.multiagentenv import MultiAgentEnv
 
 
 def env_fn(env, **kwargs) -> MultiAgentEnv:

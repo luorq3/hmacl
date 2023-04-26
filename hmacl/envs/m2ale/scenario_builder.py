@@ -5,8 +5,8 @@ import numpy as np
 from gym import spaces
 import logging
 
-from hmacl.envs.beachlanding.util import load_scenario_conf
-from hmacl.envs.beachlanding.agent import *
+from hmacl.envs.m2ale.util import load_scenario_conf
+from hmacl.envs.m2ale.agent import *
 
 
 def build_scenario(config):

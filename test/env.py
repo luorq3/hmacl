@@ -1,6 +1,6 @@
 import numpy as np
 from argparse import ArgumentParser
-from hmacl.envs.beachlanding.combat_env_vs_bot import CombatEnv
+from hmacl.envs.m2ale.m2ale_agent_vs_bot import CombatEnv
 
 parser = ArgumentParser()
 parser.add_argument("--scenario", type=str, default="5u_vs_5u")

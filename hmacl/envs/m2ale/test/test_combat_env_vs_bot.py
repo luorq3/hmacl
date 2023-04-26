@@ -3,7 +3,7 @@ from argparse import ArgumentParser
 
 import numpy as np
 
-from hmacl.envs.beachlanding.combat_env_vs_bot import CombatEnv
+from hmacl.envs.m2ale.m2ale_agent_vs_bot import CombatEnv
 
 
 parser = ArgumentParser()

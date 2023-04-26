@@ -12,7 +12,7 @@ def main(args):
     cur_task = 0
     target_task = None
 
-    algo = Algo(args.env, args.scenario)
+    algo = Algo(args.env, args.scenario, {})
     stg = STG(args.env, args.scenario, **args)
     cpi = CPI(args.target_task, args.ps_type, args.update_type, **args)
 
