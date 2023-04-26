@@ -1,20 +1,18 @@
 import numpy as np
 import os
-import random
 import collections
 from os.path import dirname, abspath
 from copy import deepcopy
 from sacred import Experiment, SETTINGS
-from sacred.observers import FileStorageObserver, MongoObserver
+from sacred.observers import FileStorageObserver
 from sacred.utils import apply_backspaces_and_linefeeds
-import sys
 import torch as th
 from utils.logging import get_logger
 import yaml
 
 from run import run
 
-SETTINGS['CAPTURE_MODE'] = "fd" # set to "no" if you want to see stdout/stderr in console
+SETTINGS['CAPTURE_MODE'] = "fd"  # set to "no" if you want to see stdout/stderr in console
 logger = get_logger()
 
 ex = Experiment("pymarl")
@@ -22,7 +20,7 @@ ex.logger = logger
 ex.captured_out_filter = apply_backspaces_and_linefeeds
 
 results_path = os.path.join(dirname(dirname(abspath(__file__))), "results")
-# results_path = "/home/ubuntu/data"
+
 
 @ex.main
 def my_main(_run, _config, _log):
@@ -45,7 +43,8 @@ def _get_config(params, arg_name, subfolder):
             break
 
     if config_name is not None:
-        with open(os.path.join(os.path.dirname(__file__), "config", subfolder, "{}.yaml".format(config_name)), "r") as f:
+        with open(os.path.join(os.path.dirname(__file__), "config", subfolder, "{}.yaml".format(config_name)),
+                  "r") as f:
             try:
                 config_dict = yaml.load(f, Loader=yaml.FullLoader)
             except yaml.YAMLError as exc:
@@ -71,8 +70,8 @@ def config_copy(config):
         return deepcopy(config)
 
 
-if __name__ == '__main__':
-    params = deepcopy(sys.argv)
+def main():
+    # params = deepcopy(sys.argv)
     th.set_num_threads(1)
 
     # Get the defaults from default.yaml
@@ -94,7 +93,6 @@ if __name__ == '__main__':
     except:
         map_name = config_dict["env_args"]["key"]
 
-
     # now add all the config to sacred
     ex.add_config(config_dict)
 
@@ -108,9 +106,6 @@ if __name__ == '__main__':
     logger.info("Saving to FileStorageObserver in results/sacred.")
     file_obs_path = os.path.join(results_path, f"sacred/{config_dict['name']}/{map_name}")
 
-    # ex.observers.append(MongoObserver(db_name="marlbench")) #url='172.31.5.187:27017'))
-    ex.observers.append(FileStorageObserver.create(file_obs_path))
-    # ex.observers.append(MongoObserver())
+    ex.observers.append(FileStorageObserver(file_obs_path))
 
     ex.run_commandline(params)
-
