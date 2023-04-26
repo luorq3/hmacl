@@ -1,12 +1,7 @@
-from hmacl.algo.Algo import run
+from hmacl.algo.algo import Algo
 
 
-params = {
-    "env-config": "m2ale",
-    "config": "vdn_ns",
-    "use_cuda": False
-}
-
-run(params)
+algo = Algo("m2ale", "vdn_ns", {})
+algo.run()
 
 
