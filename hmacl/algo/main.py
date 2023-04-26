@@ -34,13 +34,7 @@ def my_main(_run, _config, _log):
     run(_run, config, _log)
 
 
-def _get_config(params, arg_name, subfolder):
-    config_name = None
-    for _i, _v in enumerate(params):
-        if _v.split("=")[0] == arg_name:
-            config_name = _v.split("=")[1]
-            del params[_i]
-            break
+def _get_config(config_name, subfolder):
 
     if config_name is not None:
         with open(os.path.join(os.path.dirname(__file__), "config", subfolder, "{}.yaml".format(config_name)),
@@ -70,7 +64,7 @@ def config_copy(config):
         return deepcopy(config)
 
 
-def main():
+def main(env_config_name, config_name):
     # params = deepcopy(sys.argv)
     th.set_num_threads(1)
 
@@ -82,8 +76,8 @@ def main():
             assert False, "default.yaml error: {}".format(exc)
 
     # Load algorithm and env base configs
-    env_config = _get_config(params, "--env-config", "envs")
-    alg_config = _get_config(params, "--config", "algs")
+    env_config = _get_config(env_config_name, "envs")
+    alg_config = _get_config(config_name, "algs")
     # config_dict = {**config_dict, **env_config, **alg_config}
     config_dict = recursive_dict_update(config_dict, env_config)
     config_dict = recursive_dict_update(config_dict, alg_config)
@@ -96,16 +90,10 @@ def main():
     # now add all the config to sacred
     ex.add_config(config_dict)
 
-    for param in params:
-        if param.startswith("env_args.map_name"):
-            map_name = param.split("=")[1]
-        elif param.startswith("env_args.key"):
-            map_name = param.split("=")[1]
-
     # Save to disk by default for sacred
     logger.info("Saving to FileStorageObserver in results/sacred.")
     file_obs_path = os.path.join(results_path, f"sacred/{config_dict['name']}/{map_name}")
 
     ex.observers.append(FileStorageObserver(file_obs_path))
 
-    ex.run_commandline(params)
+    ex.run_commandline()
