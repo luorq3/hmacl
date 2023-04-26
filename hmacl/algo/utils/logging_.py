@@ -2,9 +2,10 @@ from collections import defaultdict
 import logging
 import numpy as np
 
-class Logger:
-    def __init__(self, console_logger):
-        self.console_logger = console_logger
+class Logger(logging.Logger):
+    def __init__(self, name: str):
+        super().__init__(name)
+        self.console_logger = set_logger()
 
         self.use_tb = False
         self.use_sacred = False
@@ -58,7 +59,7 @@ class Logger:
 
 
 # set up a custom logger
-def get_logger():
+def set_logger():
     logger = logging.getLogger()
     logger.handlers = []
     ch = logging.StreamHandler()
@@ -68,4 +69,10 @@ def get_logger():
     logger.setLevel('DEBUG')
 
     return logger
+
+
+log = Logger("test")
+def get_logger():
+    return log
+
 

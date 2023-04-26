@@ -11,7 +11,7 @@ from runners import REGISTRY as r_REGISTRY
 from controllers import REGISTRY as mac_REGISTRY
 from components.episode_buffer import ReplayBuffer
 from components.transforms import OneHot
-from utils.logging import get_logger
+from utils.logging_ import get_logger
 
 
 def run(params):
@@ -29,8 +29,13 @@ def run(params):
     for k, v in params.items():
         config_dict[k] = v
 
+    _log = get_logger()
+    args_sanity_check(config_dict, _log)
     args = sn(**config_dict)
-    run_sequential(args, logger=get_logger())
+
+    args.device = "cuda" if args.use_cuda else "cpu"
+
+    run_sequential(args, logger=_log)
 
 
 def evaluate_sequential(args, runner):
@@ -140,7 +145,7 @@ def run_sequential(args, logger):
     start_time = time.time()
     last_time = start_time
 
-    logger.console_logger.info("Beginning training for {} timesteps".format(args.t_max))
+    logger.info("Beginning training for {} timesteps".format(args.t_max))
 
     while runner.t_env <= args.t_max:
 
