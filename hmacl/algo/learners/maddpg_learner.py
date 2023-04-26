@@ -1,11 +1,11 @@
 import copy
-from components.episode_buffer import EpisodeBatch
-from modules.critics.maddpg import MADDPGCritic
+from hmacl.algo.components.episode_buffer import EpisodeBatch
+from hmacl.algo.modules.critics.maddpg import MADDPGCritic
 import torch as th
 from torch.optim import RMSprop, Adam
-from controllers.maddpg_controller import gumbel_softmax
-from modules.critics import REGISTRY as critic_registry
-from components.standarize_stream import RunningMeanStd
+from hmacl.algo.controllers.maddpg_controller import gumbel_softmax
+from hmacl.algo.modules.critics import REGISTRY as critic_registry
+from hmacl.algo.components.standarize_stream import RunningMeanStd
 
 
 class MADDPGLearner:

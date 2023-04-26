@@ -1,10 +1,10 @@
-import argparse
 import collections
 import os
 
 import yaml
 from types import SimpleNamespace as NameSpace
 import torch as th
+from config import parser
 from hmacl.algo.algo import Algo
 from hmacl.cpi import CPI
 from hmacl.stg import STG
@@ -93,7 +93,6 @@ def recursive_dict_update(d, u):
 
 if __name__ == "__main__":
     _log = get_logger()
-    parser = argparse.ArgumentParser()
     args = parser.parse_args()
     config_dict = load_config_dict()
     args_sanity_check(config_dict, _log)

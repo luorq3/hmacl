@@ -1,7 +1,7 @@
 import os
 import time
 import torch as th
-from utils.timehelper import time_left, time_str
+from hmacl.algo.utils.timehelper import time_left, time_str
 
 from learners import REGISTRY as le_REGISTRY
 from runners import REGISTRY as r_REGISTRY

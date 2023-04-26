@@ -1,11 +1,11 @@
 import copy
-from components.episode_buffer import EpisodeBatch
-from modules.critics.coma import COMACritic
-from utils.rl_utils import build_td_lambda_targets
+from hmacl.algo.components.episode_buffer import EpisodeBatch
+from hmacl.algo.modules.critics.coma import COMACritic
+from hmacl.algo.utils.rl_utils import build_td_lambda_targets
 import torch as th
 from torch.optim import Adam
-from modules.critics import REGISTRY as critic_registry
-from components.standarize_stream import RunningMeanStd
+from hmacl.algo.modules.critics import REGISTRY as critic_registry
+from hmacl.algo.components.standarize_stream import RunningMeanStd
 
 class COMALearner:
     def __init__(self, mac, scheme, logger, args):

@@ -1,6 +1,6 @@
 import copy
-from components.episode_buffer import EpisodeBatch
-from modules.mixers.qtran import QTranBase
+from hmacl.algo.components.episode_buffer import EpisodeBatch
+from hmacl.algo.modules.mixers.qtran import QTranBase
 import torch as th
 from torch.optim import RMSprop, Adam
 

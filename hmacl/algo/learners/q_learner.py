@@ -1,10 +1,10 @@
 import copy
-from components.episode_buffer import EpisodeBatch
-from modules.mixers.vdn import VDNMixer
-from modules.mixers.qmix import QMixer
+from hmacl.algo.components.episode_buffer import EpisodeBatch
+from hmacl.algo.modules.mixers.vdn import VDNMixer
+from hmacl.algo.modules.mixers.qmix import QMixer
 import torch as th
 from torch.optim import Adam
-from components.standarize_stream import RunningMeanStd
+from hmacl.algo.components.standarize_stream import RunningMeanStd
 
 
 class QLearner:

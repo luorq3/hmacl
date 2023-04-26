@@ -1,6 +1,6 @@
-from envs import REGISTRY as env_REGISTRY
+from hmacl.algo.envs import REGISTRY as env_REGISTRY
 from functools import partial
-from components.episode_buffer import EpisodeBatch
+from hmacl.algo.components.episode_buffer import EpisodeBatch
 import numpy as np
 
 
