@@ -4,12 +4,33 @@ import yaml
 import torch as th
 from utils.timehelper import time_left, time_str
 import collections
+from types import SimpleNamespace as sn
 
 from learners import REGISTRY as le_REGISTRY
 from runners import REGISTRY as r_REGISTRY
 from controllers import REGISTRY as mac_REGISTRY
 from components.episode_buffer import ReplayBuffer
 from components.transforms import OneHot
+from utils.logging import get_logger
+
+
+def run(params):
+    with open(os.path.join(os.path.dirname(__file__), "config", "default.yaml"), "r") as f:
+        try:
+            config_dict = yaml.load(f, Loader=yaml.FullLoader)
+        except yaml.YAMLError as exc:
+            assert False, "default.yaml error: {}".format(exc)
+    env_config = _get_config(params, "env-config", "envs")
+    alg_config = _get_config(params, "config", "algs")
+    config_dict = recursive_dict_update(config_dict, env_config)
+    config_dict = recursive_dict_update(config_dict, alg_config)
+
+    # merge params and args
+    for k, v in params.items():
+        config_dict[k] = v
+
+    args = sn(**config_dict)
+    run_sequential(args, logger=get_logger())
 
 
 def evaluate_sequential(args, runner):
@@ -204,18 +225,16 @@ def args_sanity_check(config, _log):
 
     return config
 
-
-def _get_config(config_name, subfolder):
+def _get_config(params, arg_name, subfolder):
+    config_name = params[arg_name]
 
     if config_name is not None:
-        with open(os.path.join(os.path.dirname(__file__), "config", subfolder, "{}.yaml".format(config_name)),
-                  "r") as f:
+        with open(os.path.join(os.path.dirname(__file__), "config", subfolder, "{}.yaml".format(config_name)), "r") as f:
             try:
                 config_dict = yaml.load(f, Loader=yaml.FullLoader)
             except yaml.YAMLError as exc:
                 assert False, "{}.yaml error: {}".format(config_name, exc)
         return config_dict
-
 
 def recursive_dict_update(d, u):
     for k, v in u.items():

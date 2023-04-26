@@ -1,4 +1,11 @@
 from hmacl.algo.run import run
 
 
-run("vdn_ns")
+params = {
+    "env-config": "m2ale",
+    "config": "vdn_ns"
+}
+
+run(params)
+
+
