@@ -13,6 +13,7 @@ class EpisodeRunner:
         assert self.batch_size == 1
 
         self.env = env_REGISTRY[self.args.env](**self.args.env_args)
+        self.tag_env = env_REGISTRY[self.args.env](**self.args.tag_env_args)
         self.episode_limit = self.env.episode_limit
         self.t = 0
 
@@ -20,8 +21,10 @@ class EpisodeRunner:
 
         self.train_returns = []
         self.test_returns = []
+        self.tag_returns = []
         self.train_stats = {}
         self.test_stats = {}
+        self.tag_stats = {}
 
         # Log the first run
         self.log_train_stats_t = -1000000
@@ -40,24 +43,30 @@ class EpisodeRunner:
     def close_env(self):
         self.env.close()
 
-    def reset(self):
+    def reset(self, env):
         self.batch = self.new_batch()
-        self.env.reset()
+        env.reset()
         self.t = 0
 
-    def run(self, test_mode=False):
-        self.reset()
+    def run(self, test_mode=False, test_tag=False):
+        if test_tag:
+            assert test_mode, "When test target task, must trigger test_mode."
+        # Specify target task
+        env = self.tag_env if test_tag else self.env
+
+        self.reset(env)
 
         terminated = False
+        env_info = {}
         episode_return = 0
         self.mac.init_hidden(batch_size=self.batch_size)
 
         while not terminated:
 
             pre_transition_data = {
-                "state": [self.env.get_state()],
-                "avail_actions": [self.env.get_avail_actions()],
-                "obs": [self.env.get_obs()]
+                "state": [env.get_state()],
+                "avail_actions": [env.get_avail_actions()],
+                "obs": [env.get_obs()]
             }
 
             self.batch.update(pre_transition_data, ts=self.t)
@@ -66,9 +75,9 @@ class EpisodeRunner:
             # Receive the actions for each agent at this timestep in a batch of size 1
             actions = self.mac.select_actions(self.batch, t_ep=self.t, t_env=self.t_env, test_mode=test_mode)
 
-            reward, terminated, env_info = self.env.step(actions[0])
+            reward, terminated, env_info = env.step(actions[0])
             if test_mode and self.args.render:
-                self.env.render()
+                env.render()
             episode_return += reward
 
             post_transition_data = {
@@ -82,9 +91,9 @@ class EpisodeRunner:
             self.t += 1
 
         last_data = {
-            "state": [self.env.get_state()],
-            "avail_actions": [self.env.get_avail_actions()],
-            "obs": [self.env.get_obs()]
+            "state": [env.get_state()],
+            "avail_actions": [env.get_avail_actions()],
+            "obs": [env.get_obs()]
         }
         if test_mode and self.args.render:
             print(f"Episode return: {episode_return}")
@@ -94,9 +103,15 @@ class EpisodeRunner:
         actions = self.mac.select_actions(self.batch, t_ep=self.t, t_env=self.t_env, test_mode=test_mode)
         self.batch.update({"actions": actions}, ts=self.t)
 
-        cur_stats = self.test_stats if test_mode else self.train_stats
-        cur_returns = self.test_returns if test_mode else self.train_returns
-        log_prefix = "test_" if test_mode else ""
+        if test_mode:
+            cur_stats = self.tag_stats if test_tag else self.test_stats
+            cur_returns = self.tag_returns if test_tag else self.test_returns
+            log_prefix = "test_tag_" if test_tag else "test_"
+        else:
+            cur_stats = self.train_stats
+            cur_returns = self.train_returns
+            log_prefix = ""
+
         cur_stats.update({k: cur_stats.get(k, 0) + env_info.get(k, 0) for k in set(cur_stats) | set(env_info)})
         cur_stats["n_episodes"] = 1 + cur_stats.get("n_episodes", 0)
         cur_stats["ep_length"] = self.t + cur_stats.get("ep_length", 0)

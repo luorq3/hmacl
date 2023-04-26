@@ -8,6 +8,14 @@ env_args:
   reward_type: "dense"
 
 
+tag_env_args:
+  scenario: "agent_vs_bot_example"
+  key: "agent_vs_bot_example"
+  time_limit: 200
+  camp: "offensive"
+  reward_type: "dense"
+
+
 test_greedy: True
 test_nepisode: 100
 test_interval: 2000
