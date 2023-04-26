@@ -11,7 +11,7 @@ from runners import REGISTRY as r_REGISTRY
 from controllers import REGISTRY as mac_REGISTRY
 from components.episode_buffer import ReplayBuffer
 from components.transforms import OneHot
-from utils.logging_ import get_logger
+from hmacl.utils.logging_ import get_logger
 
 
 def run(params):
@@ -36,6 +36,8 @@ def run(params):
     args.device = "cuda" if args.use_cuda else "cpu"
 
     run_sequential(args, logger=_log)
+
+    return None
 
 
 def evaluate_sequential(args, runner):

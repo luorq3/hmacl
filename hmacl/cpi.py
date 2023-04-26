@@ -1,9 +1,9 @@
 
 class CPI:
 
-    def __init__(self, tag_task, model, ps_type, update_type, ap2cp=None, **kwargs):
+    def __init__(self, tag_task, ps_type, update_type, ap2cp=None, **kwargs):
         self.env = tag_task
-        self.model = model
+        self.model = None  # network
         self.ap2cp = ap2cp
         self.ps_type = ps_type
         self.update_type = update_type
@@ -12,7 +12,7 @@ class CPI:
         # m--e.g."win-rate", "return".the metric compare new model and current model
         self.m = kwargs['m']
 
-    def improve(self, new_model):
+    def improve(self, new_model=None):
         new_stats = self.eval(new_model)
 
         # update_model

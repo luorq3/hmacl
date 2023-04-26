@@ -2,16 +2,35 @@ from collections import defaultdict
 import logging
 import numpy as np
 
+import wandb
+import socket
+
+
+project_name = "hmacl"
+
+
 class Logger(logging.Logger):
     def __init__(self, name: str):
         super().__init__(name)
         self.console_logger = set_logger()
-
-        self.use_tb = False
-        self.use_sacred = False
-        self.use_hdf = False
-
         self.stats = defaultdict(lambda: [])
+
+        self.use_wandb = False
+        self.use_tb = False
+
+    def setup_wandb(self, args, wandb_logs_direc):
+        self.wandb_run = wandb.init(
+            config=args,
+            project=project_name + "-" + args.env,
+            group=args.wandb_group,
+            entity=args.wandb_user_name,
+            notes=socket.gethostname(),
+            name=args.unique_token,
+            dir=wandb_logs_direc,
+            job_type=args.wandb_job_type,
+            reinit=True
+        )
+        self.use_wandb = True
 
     def setup_tb(self, directory_name):
         # Import here so it doesn't have to be installed if you don't use it
@@ -20,26 +39,14 @@ class Logger(logging.Logger):
         self.tb_logger = log_value
         self.use_tb = True
 
-    def setup_sacred(self, sacred_run_dict):
-        self._run_obj = sacred_run_dict
-        self.sacred_info = sacred_run_dict.info
-        self.use_sacred = True
-
     def log_stat(self, key, value, t, to_sacred=True):
         self.stats[key].append((t, value))
 
         if self.use_tb:
             self.tb_logger(key, value, t)
 
-        if self.use_sacred and to_sacred:
-            if key in self.sacred_info:
-                self.sacred_info["{}_T".format(key)].append(t)
-                self.sacred_info[key].append(value)
-            else:
-                self.sacred_info["{}_T".format(key)] = [t]
-                self.sacred_info[key] = [value]
-
-            self._run_obj.log_scalar(key, value, t)
+        if self.use_wandb:
+            wandb.log({key: value}, step=t)
 
     def print_recent_stats(self):
         log_str = "Recent Stats | t_env: {:>10} | Episode: {:>8}\n".format(*self.stats["episode"][-1])
@@ -71,7 +78,7 @@ def set_logger():
     return logger
 
 
-log = Logger("test")
+log = Logger(project_name)
 def get_logger():
     return log
 
