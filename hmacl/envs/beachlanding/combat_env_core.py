@@ -14,7 +14,7 @@ class CombatEnvCore:
         self.surface_map = self._scenario.surface_map
         self.air_map = self._scenario.air_map
 
-        # agents need to control by algo, units includes both [agents] and [bot]
+        # agents need to control by algov1, units includes both [agents] and [bot]
         self.agents_unique_idx = self._scenario.offensive_agents_id + self._scenario.defensive_agents_id
         self.bots_unique_idx = self._scenario.offensive_bots_id + self._scenario.defensive_bots_id
         self.state_dims = self._scenario.state_dims
