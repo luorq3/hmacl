@@ -17,7 +17,7 @@ unit:
 
 map_size: [ 12, 12 ]
 pos_init_type: "random"
-reward_type: "dense"
+reward_type: "sparse"
 obs_with_agent_id: False
 offensive_agent:
   warship:

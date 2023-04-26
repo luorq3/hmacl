@@ -12,10 +12,14 @@ class TaskList:
         self.expand_d = kwargs["expand_d"]
         self.tasks = {_id: [x, x] for _id, x in enumerate(
             np.arange(self.initial_len, self.tag_len, self.expand_d))}
-        self.tasks[len(self.tasks)] = [self.tag_len] * 2
+        self.tag_task = len(self.tasks)
+        self.tasks[self.tag_task] = [self.tag_len] * 2
 
     def __len__(self):
         return len(self.tasks)
+
+    def __getitem__(self, item):
+        return self.tasks[item]
 
 
 class STG:
@@ -28,6 +32,8 @@ class STG:
         self.ls = np.zeros(len(self.tasks))
         self.loss_coef = kwargs['loss_coef']
         self.temperature = kwargs['temperature']
+        self.cur_task = 0
+        self.tag_task = self.tasks.tag_task
 
     def generate(self, task, metrics, loss):
         if not self.task_seen[task]:
