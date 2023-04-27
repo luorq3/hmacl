@@ -1,3 +1,5 @@
+from copy import deepcopy
+
 from hmacl.algo.envs import REGISTRY as env_REGISTRY
 from functools import partial
 from hmacl.algo.components.episode_buffer import EpisodeBatch
@@ -48,7 +50,7 @@ class EpisodeRunner:
         env.reset()
         self.t = 0
 
-    def run(self, test_mode=False, test_tag=False):
+    def run(self, test_mode=False, test_tag=False, tag_eval_stats=None):
         if test_tag:
             assert test_mode, "When test target task, must trigger test_mode."
         # Specify target task
@@ -123,6 +125,9 @@ class EpisodeRunner:
 
         if test_mode:
             if test_tag and len(self.tag_returns) == self.args.eval_nepisode:
+                if tag_eval_stats is not None:
+                    tag_eval_stats['returns'] = deepcopy(cur_returns)
+                    tag_eval_stats['stats'] = deepcopy(cur_stats)
                 self._log(cur_returns, cur_stats, log_prefix)
             elif len(self.test_returns) == self.args.test_nepisode:
                 self._log(cur_returns, cur_stats, log_prefix)

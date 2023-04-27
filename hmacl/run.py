@@ -1,4 +1,4 @@
-import collections
+from collections import abc
 import datetime
 import os
 import random
@@ -23,7 +23,7 @@ def main(all_args, _log):
     np.random.seed(all_args.seed)
     th.random.manual_seed(all_args.seed)
     # parallel runner need to setting new seed for envs
-    all_args.env_args.seed = all_args.seed
+    all_args.env_args["seed"] = all_args.seed
 
     # setting target task env_config
     all_args.tag_env_args = deepcopy(all_args.env_args)
@@ -32,13 +32,16 @@ def main(all_args, _log):
     fmt_time = datetime.datetime.now().strftime('%Y-%m-%d_%H:%M:%S')
     all_args.unique_token = f"{all_args.name}_seed{all_args.seed}_{all_args.env}-{all_args.env_args['scenario']}_{fmt_time}"
 
-    if args.use_wandb:
+    if all_args.use_wandb:
         _log.setup_wandb(all_args)
 
     algo = Algo(all_args, _log)
-    stg = STG(all_args.env, all_args.scenario, **all_args)
+
+    metrics = algo.eval_tag_task()
+    _log.console_logger.info("Evaluate target task in initial policies, stats: {}".format(metrics))
 
     cpi = CPI(all_args.target_task, all_args.ps_type, all_args.update_type, **all_args)
+    stg = STG(all_args.env, all_args.scenario, **all_args)
 
     n_timesteps = all_args.n_timesteps
     t = 0
@@ -106,7 +109,7 @@ def _get_config(config_name, subfolder):
 
 def recursive_dict_update(d, u):
     for k, v in u.items():
-        if isinstance(v, collections.Mapping):
+        if isinstance(v, abc.Mapping):
             d[k] = recursive_dict_update(d.get(k, {}), v)
         else:
             d[k] = v

@@ -192,3 +192,11 @@ class Algo:
             self.runner.save_replay()
 
         self.runner.close_env()
+
+    def eval_tag_task(self, n_episode=0):
+        if not n_episode:
+            n_episode = self.args.eval_nepisode
+        stats = {}
+        for _ in range(n_episode):
+            self.runner.run(test_mode=True, test_tag=True, tag_eval_stats=stats)
+        return stats
