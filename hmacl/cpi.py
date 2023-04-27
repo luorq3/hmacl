@@ -9,7 +9,7 @@ class CPI:
     def __init__(self, args, logger):
         self.args = args
         self.logger = logger
-        self.update_type = args.update_type  # soft or hard
+        self.improve_type = args.improve_type  # soft or hard
         self.metrics_key = args.metrics  # win_rate or return or ...
         self.agent_path = None
         self.stats = None  # {'returns': [], 'stats': {}}
@@ -22,15 +22,15 @@ class CPI:
     def improve(self, algo, learner, t_env):
         stats, metrics = self.eval_on_tag(algo)
 
-        if self.update_type == "hard":
+        if self.improve_type == "hard":
             assert self.cur_metrics is not None, "Please invoke `update_stats` before `improve`."
             if metrics > self.cur_metrics:
                 self.update_agent(learner, "hard", t_env, stats, metrics)
-        elif self.update_type == "soft":
+        elif self.improve_type == "soft":
             self.update_agent(learner, "soft", t_env)
             self.update_stats(algo, learner, t_env)
         else:
-            raise ValueError("No such model update approach: {}.".format(self.update_type))
+            raise ValueError("No such model update approach: {}.".format(self.improve_type))
 
     def update_agent(self, learner, update_type, t_env, stats=None, metrics=None):
         if update_type == "hard":

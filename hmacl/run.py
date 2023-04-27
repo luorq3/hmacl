@@ -80,7 +80,6 @@ def main(all_args, _log):
 
     # Give runner the scheme
     runner = r_REGISTRY[all_args.runner](args=all_args, logger=_log)
-    runner.setup(scheme=scheme, groups=groups, preprocess=preprocess, mac=mac)
 
     # Learner
     learner = le_REGISTRY[all_args.learner](mac, buffer.scheme, _log, all_args)
@@ -102,6 +101,7 @@ def main(all_args, _log):
     tag_env_config = stg.get_tag_task_config()
     tag_env = env_REGISTRY[all_args.env](**tag_env_config)
     runner.set_env(env, tag_env)
+    runner.setup(scheme=scheme, groups=groups, preprocess=preprocess, mac=mac)
     cpi.update_stats(algo, learner, 0)
     # end===================================HMACL components===================================
 
