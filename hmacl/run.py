@@ -94,21 +94,19 @@ def main(all_args, _log):
     stg = STG(all_args, _log)
     # end===================================HMACL components===================================
 
+    task_id = 0
     cpi.update_stats(algo, learner, 0)
 
-    n_timesteps = all_args.n_timesteps
-    t = 0
-    # steps_per_algo
-    steps_per_algo = None
-    while t < n_timesteps:
-        loss = algo.run()
-        metrics = cpi.improve()
-        next_task = stg.generate(cur_task, metrics, loss)
-        cur_task = next_task
-        t += steps_per_algo
+    while runner.t_env < args.t_max:
+        td_error = algo.run()
+        cpi.improve(algo, learner, runner.t_env)
+        task_id = stg.generate(task_id, cpi.cur_metrics, td_error)
 
     # Train on target_task
     algo.run()
+
+    runner.close_env()
+    _log.console_logger.info("Finished Training")
 
 
 def load_config_dict():

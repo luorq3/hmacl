@@ -59,13 +59,13 @@ class Algo:
         self.model_save_time = 0
 
     def run(self):
-
+        td_error = 0
         start_time = time.time()
         last_time = start_time
 
-        self.logger.info("Beginning training for {} timesteps".format(self.args.t_max))
+        self.logger.info("Beginning training for {} timesteps".format(self.args.t_update))
 
-        while self.runner.t_env <= self.args.t_max:
+        while self.runner.t_env <= self.args.t_update:
 
             # Run for a whole episode at a time
             episode_batch = self.runner.run(test_mode=False)
@@ -81,7 +81,7 @@ class Algo:
                 if episode_sample.device != self.args.device:
                     episode_sample.to(self.args.device)
 
-                self.learner.train(episode_sample, self.runner.t_env, self.episode)
+                td_error = self.learner.train(episode_sample, self.runner.t_env, self.episode)
 
             # Execute test runs once in a while
             n_test_runs = max(1, self.args.test_nepisode // self.runner.batch_size)
@@ -131,9 +131,7 @@ class Algo:
                 self.logger.log_stat("episode", self.episode, self.runner.t_env)
                 self.logger.print_recent_stats()
                 self.last_log_T = self.runner.t_env
-
-        self.runner.close_env()
-        self.logger.console_logger.info("Finished Training")
+        return td_error
 
     def evaluate_sequential(self):
 

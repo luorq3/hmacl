@@ -39,13 +39,13 @@ class STG:
         self.cur_task = 0
         self.tag_task = self.tasks.tag_task
 
-    def generate(self, task, metrics, loss):
+    def generate(self, task, metrics, td_error):
         if not self.task_seen[task]:
             self.task_seen[task] = 1
             self.max_task = task
 
         self.ms[task] = np.abs(metrics)
-        self.ls[task] = np.abs(loss)
+        self.ls[task] = np.abs(td_error)
 
         if np.all(self.task_seen) or np.random.random() < self.task_seen.sum() / len(self.task_seen):
             wms = self.replay_weight(self.ms)
