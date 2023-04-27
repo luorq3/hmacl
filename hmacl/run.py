@@ -43,10 +43,9 @@ def main(all_args, _log):
     # end==================================args and log========================================
 
     # start========================marl algorithm required components==========================
-    # Init runner so we can get env info
-    runner = r_REGISTRY[all_args.runner](args=all_args, logger=_log)
     # Set up schemes and groups here
-    env_info = runner.get_env_info()
+    env_demo = env_REGISTRY[all_args.env](**all_args.env_args)
+    env_info = env_demo.get_env_info()
     all_args.n_agents = env_info["n_agents"]
     all_args.n_actions = env_info["n_actions"]
     all_args.state_shape = env_info["state_shape"]
@@ -80,6 +79,7 @@ def main(all_args, _log):
     mac = mac_REGISTRY[all_args.mac](buffer.scheme, groups, all_args)
 
     # Give runner the scheme
+    runner = r_REGISTRY[all_args.runner](args=all_args, logger=_log)
     runner.setup(scheme=scheme, groups=groups, preprocess=preprocess, mac=mac)
 
     # Learner
@@ -90,15 +90,18 @@ def main(all_args, _log):
     # end==========================marl algorithm required components==========================
 
     # start=================================HMACL components===================================
+    # hmacl
     cpi = CPI(all_args, _log)
     stg = STG(all_args, _log)
+    algo = Algo(all_args, _log, runner, mac, learner, buffer)
+
+    # initial env/target env
     task_id = 0
     env_config = stg.get_task_config(task_id)
     env = env_REGISTRY[all_args.env](**env_config)
     tag_env_config = stg.get_tag_task_config()
     tag_env = env_REGISTRY[all_args.env](**tag_env_config)
     runner.set_env(env, tag_env)
-    algo = Algo(all_args, _log, runner, mac, learner, buffer)
     cpi.update_stats(algo, learner, 0)
     # end===================================HMACL components===================================
 
