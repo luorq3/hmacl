@@ -84,11 +84,12 @@ def main(all_args, _log):
 
     # start=================================HMACL components===================================
     algo = Algo(all_args, _log, runner, mac, buffer)
-    cpi = CPI(all_args.target_task, all_args.ps_type, all_args.update_type, **all_args)
+    cpi = CPI(all_args, _log)
     stg = STG(all_args.env, all_args.scenario, **all_args)
     # end=================================HMACL components===================================
 
-    metrics = algo.eval_tag_task()
+    cpi.update_stats(algo, mac)
+
     _log.console_logger.info("Evaluate target task in initial policies, stats: {}".format(metrics))
     n_timesteps = all_args.n_timesteps
     t = 0
