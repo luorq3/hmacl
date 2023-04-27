@@ -1,18 +1,29 @@
+from copy import deepcopy
+
+import numpy as np
+
 
 class CPI:
 
-    def __init__(self, tag_task, ps_type, update_type, ap2cp=None, **kwargs):
-        self.env = tag_task
-        self.model = None  # network
-        self.ap2cp = ap2cp
-        self.ps_type = ps_type
-        self.update_type = update_type
-        self.stats = self.eval(self.model)
-        self.eval_episode = kwargs['eval_episode']
-        # m--e.g."win-rate", "return".the metric compare new model and current model
-        self.m = kwargs['m']
+    def __init__(self, args, cur_stats, mac):
+        self.update_type = args.update_type
+        self.stats = cur_stats  # {'returns': [], 'stats': {'battle_won': 0, 'episode_limit': 1, 'n_episodes': 1, 'ep_length': 200}}
+        self.mac = deepcopy(mac)
+        self.metrics = "win_rate"  # args.metrics = win_rate or return
 
-    def improve(self, new_model=None):
+    def cal_metrics(self):
+        if self.metrics == "win_rate":
+            battle_won = self.stats["battle_won"]
+            n_episodes = self.stats["n_episodes"]
+            metrics = float(battle_won) / n_episodes
+        elif self.metrics == "return":
+            returns = self.stats["returns"]
+            metrics = np.mean(returns)
+        else:
+            raise NotImplementedError("No such metrics: {}".format(self.metrics))
+        return metrics
+
+    def improve(self, new_mac):
         new_stats = self.eval(new_model)
 
         # update_model
@@ -25,39 +36,3 @@ class CPI:
             raise ValueError(f"No such model update type: {self.update_type}")
 
         return self.model, new_stats
-
-    def eval(self, new_model):
-        self.env.clean_stats()
-        for episode in range(self.eval_episode):
-            self.env.reset()
-            done = False
-            while not done:
-                obs = self.env.get_obs()
-                action = self.act(obs, new_model)
-                reward, done, info = self.env.step(action)
-        return self.env.get_stats()
-
-    def update_model(self, new_model):
-        pass
-
-    def act(self, obs, model):
-        action = []
-        if self.ps_type == "ps":
-            action = model.act(obs)
-        else:
-            if self.ps_type == "no_ps":
-                assert len(model) == len(obs), "Model number can't match obs number when disable parameter sharing."
-            elif self.ps_type == "class_ps":
-                assert len(model) <= len(obs)
-
-            for i, o in enumerate(obs):
-                m = self.ap2cp(i, model)
-                a = m.act(o)
-                action.append(a)
-
-        assert len(action) == len(obs), "Action number can't match obs number."
-
-        return action
-
-
-

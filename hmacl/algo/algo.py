@@ -1,59 +1,18 @@
 import os
 import time
-import torch as th
 from hmacl.algo.utils.timehelper import time_left, time_str
 
 from learners import REGISTRY as le_REGISTRY
-from runners import REGISTRY as r_REGISTRY
-from controllers import REGISTRY as mac_REGISTRY
-from components.episode_buffer import ReplayBuffer
-from components.transforms import OneHot
 
 
 class Algo:
 
-    def __init__(self, args, logger):
+    def __init__(self, args, logger, runner, mac, buffer):
         self.args = args
         self.logger = logger
-
-        # Init runner so we can get env info
-        self.runner = r_REGISTRY[self.args.runner](args=self.args, logger=self.logger)
-        # Set up schemes and groups here
-        env_info = self.runner.get_env_info()
-        self.args.n_agents = env_info["n_agents"]
-        self.args.n_actions = env_info["n_actions"]
-        self.args.state_shape = env_info["state_shape"]
-
-        # Default/Base scheme
-        self.scheme = {
-            "state": {"vshape": env_info["state_shape"]},
-            "obs": {"vshape": env_info["obs_shape"], "group": "agents"},
-            "actions": {"vshape": (1,), "group": "agents", "dtype": th.long},
-            "avail_actions": {
-                "vshape": (env_info["n_actions"],),
-                "group": "agents",
-                "dtype": th.int,
-            },
-            "reward": {"vshape": (1,)},
-            "terminated": {"vshape": (1,), "dtype": th.uint8},
-        }
-        self.groups = {"agents": self.args.n_agents}
-        self.preprocess = {"actions": ("actions_onehot", [OneHot(out_dim=self.args.n_actions)])}
-
-        self.buffer = ReplayBuffer(
-            self.scheme,
-            self.groups,
-            self.args.buffer_size,
-            env_info["episode_limit"] + 1,
-            preprocess=self.preprocess,
-            device="cpu" if self.args.buffer_cpu_only else self.args.device,
-        )
-
-        # Setup multiagent controller here
-        self.mac = mac_REGISTRY[self.args.mac](self.buffer.scheme, self.groups, self.args)
-
-        # Give runner the scheme
-        self.runner.setup(scheme=self.scheme, groups=self.groups, preprocess=self.preprocess, mac=self.mac)
+        self.runner = runner
+        self.mac = mac
+        self.buffer = buffer
 
         # Learner
         self.learner = le_REGISTRY[self.args.learner](self.mac, self.buffer.scheme, self.logger, self.args)

@@ -13,9 +13,14 @@ from hmacl.algo.algo import Algo
 from hmacl.cpi import CPI
 from hmacl.stg import STG
 from hmacl.utils.logging_ import get_logger
+from hmacl.algo.components.transforms import OneHot
+from hmacl.algo.components.episode_buffer import ReplayBuffer
+from hmacl.algo.runners import REGISTRY as r_REGISTRY
+from hmacl.algo.controllers import REGISTRY as mac_REGISTRY
 
 
 def main(all_args, _log):
+    # start================================args and log========================================
     # seed
     if not hasattr(all_args, "seed"):
         all_args.seed = np.random.randint(0, 100000)
@@ -34,15 +39,57 @@ def main(all_args, _log):
 
     if all_args.use_wandb:
         _log.setup_wandb(all_args)
+    # end================================args and log========================================
 
-    algo = Algo(all_args, _log)
+    # start========================marl algorithm required components==========================
+    # Init runner so we can get env info
+    runner = r_REGISTRY[all_args.runner](args=all_args, logger=_log)
+    # Set up schemes and groups here
+    env_info = runner.get_env_info()
+    all_args.n_agents = env_info["n_agents"]
+    all_args.n_actions = env_info["n_actions"]
+    all_args.state_shape = env_info["state_shape"]
+
+    # Default/Base scheme
+    scheme = {
+        "state": {"vshape": env_info["state_shape"]},
+        "obs": {"vshape": env_info["obs_shape"], "group": "agents"},
+        "actions": {"vshape": (1,), "group": "agents", "dtype": th.long},
+        "avail_actions": {
+            "vshape": (env_info["n_actions"],),
+            "group": "agents",
+            "dtype": th.int,
+        },
+        "reward": {"vshape": (1,)},
+        "terminated": {"vshape": (1,), "dtype": th.uint8},
+    }
+    groups = {"agents": all_args.n_agents}
+    preprocess = {"actions": ("actions_onehot", [OneHot(out_dim=all_args.n_actions)])}
+
+    buffer = ReplayBuffer(
+        scheme,
+        groups,
+        all_args.buffer_size,
+        env_info["episode_limit"] + 1,
+        preprocess=preprocess,
+        device="cpu" if all_args.buffer_cpu_only else all_args.device,
+    )
+
+    # Setup multiagent controller here
+    mac = mac_REGISTRY[all_args.mac](buffer.scheme, groups, all_args)
+
+    # Give runner the scheme
+    runner.setup(scheme=scheme, groups=groups, preprocess=preprocess, mac=mac)
+    # end========================marl algorithm required components==========================
+
+    # start=================================HMACL components===================================
+    algo = Algo(all_args, _log, runner, mac, buffer)
+    cpi = CPI(all_args.target_task, all_args.ps_type, all_args.update_type, **all_args)
+    stg = STG(all_args.env, all_args.scenario, **all_args)
+    # end=================================HMACL components===================================
 
     metrics = algo.eval_tag_task()
     _log.console_logger.info("Evaluate target task in initial policies, stats: {}".format(metrics))
-
-    cpi = CPI(all_args.target_task, all_args.ps_type, all_args.update_type, **all_args)
-    stg = STG(all_args.env, all_args.scenario, **all_args)
-
     n_timesteps = all_args.n_timesteps
     t = 0
     # steps_per_algo

@@ -36,6 +36,9 @@ class EpisodeRunner:
                                  preprocess=preprocess, device=self.args.device)
         self.mac = mac
 
+    def set_mac(self, mac):
+        self.mac = mac
+
     def get_env_info(self):
         return self.env.get_env_info()
 
