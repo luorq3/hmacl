@@ -31,8 +31,8 @@ def main(all_args, _log):
     all_args.env_args["seed"] = all_args.seed
 
     # setting target task env_config
-    all_args.tag_env_args = deepcopy(all_args.env_args)
-    all_args.tag_env_args["map_size"] = all_args.tag_env_args["tag_map_size"]
+    # all_args.tag_env_args = deepcopy(all_args.env_args)
+    # all_args.tag_env_args["map_size"] = all_args.tag_env_args["tag_map_size"]
 
     fmt_time = datetime.datetime.now().strftime('%Y-%m-%d_%H:%M:%S')
     all_args.unique_token = f"{all_args.name}_seed{all_args.seed}_{all_args.env}-{all_args.env_args['scenario']}_{fmt_time}"
@@ -85,7 +85,7 @@ def main(all_args, _log):
     # start=================================HMACL components===================================
     algo = Algo(all_args, _log, runner, mac, buffer)
     cpi = CPI(all_args, _log)
-    stg = STG(all_args.env, all_args.scenario, **all_args)
+    stg = STG(all_args, _log)
     # end=================================HMACL components===================================
 
     cpi.update_stats(algo, mac)

@@ -1,37 +1,41 @@
+from copy import deepcopy
+
 import numpy as np
 
 
 class TaskList:
 
-    def __init__(self, env_name, scenario, **kwargs):
-        self.env = env_name
-        self.scenario = scenario
-
-        self.initial_len = kwargs["initial_len"]
-        self.tag_len = kwargs["tag_len"]
-        self.expand_d = kwargs["expand_d"]
+    def __init__(self, args):
+        self.env = args.env
+        self.task_args = args.env_args
+        initial_map_x = self.task_args['map_size'][0]
+        tag_map_x = self.task_args['tag_map_size'][0]
+        expand_d = self.task_args['expand_d']
         self.tasks = {_id: [x, x] for _id, x in enumerate(
-            np.arange(self.initial_len, self.tag_len, self.expand_d))}
-        self.tag_task = len(self.tasks)
-        self.tasks[self.tag_task] = [self.tag_len] * 2
+            np.arange(initial_map_x, tag_map_x, expand_d))}
+        self.tasks[len(self.tasks)] = [tag_map_x] * 2
 
     def __len__(self):
         return len(self.tasks)
 
     def __getitem__(self, item):
-        return self.tasks[item]
+        task_args = deepcopy(self.task_args)
+        task_args['map_size'] = self.tasks[item]
 
 
 class STG:
 
-    def __init__(self, env_name, scenario, **kwargs):
-        self.tasks = TaskList(env_name, scenario, **kwargs)
+    def __init__(self, args, logger):
+        self.args = args
+        self.logger = logger
+
+        self.tasks = TaskList(args)
         self.task_seen = np.zeros(len(self.tasks))
         self.max_task = 0
         self.ms = np.zeros(len(self.tasks))
         self.ls = np.zeros(len(self.tasks))
-        self.loss_coef = kwargs['loss_coef']
-        self.temperature = kwargs['temperature']
+        self.loss_coef = self.args.loss_coef
+        self.temperature = self.args.temperature
         self.cur_task = 0
         self.tag_task = self.tasks.tag_task
 
@@ -70,12 +74,12 @@ class STG:
         return weights
 
 
-if __name__ == "__main__":
-    np.random.seed(0)
-    stg = STG("m2ale", "test", initial_len=5, tag_len=29, expand_d=5, temperature=1, loss_coef=0.5)
-    task = 0
-    ts = []
-    for _ in range(10):
-        ts.append(task)
-        task = stg.generate(task, np.random.random(), np.random.random())
-    print(ts)
+# if __name__ == "__main__":
+#     np.random.seed(0)
+#     stg = STG("m2ale", "test", initial_len=5, tag_len=29, expand_d=5, temperature=1, loss_coef=0.5)
+#     task = 0
+#     ts = []
+#     for _ in range(10):
+#         ts.append(task)
+#         task = stg.generate(task, np.random.random(), np.random.random())
+#     print(ts)
