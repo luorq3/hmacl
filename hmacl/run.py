@@ -2,7 +2,6 @@ from collections import abc
 import datetime
 import os
 import random
-from copy import deepcopy
 
 import numpy as np
 import yaml
@@ -39,7 +38,7 @@ def main(all_args, _log):
 
     if all_args.use_wandb:
         _log.setup_wandb(all_args)
-    # end================================args and log========================================
+    # end==================================args and log========================================
 
     # start========================marl algorithm required components==========================
     # Init runner so we can get env info
@@ -80,13 +79,13 @@ def main(all_args, _log):
 
     # Give runner the scheme
     runner.setup(scheme=scheme, groups=groups, preprocess=preprocess, mac=mac)
-    # end========================marl algorithm required components==========================
+    # end==========================marl algorithm required components==========================
 
     # start=================================HMACL components===================================
     algo = Algo(all_args, _log, runner, mac, buffer)
     cpi = CPI(all_args, _log)
     stg = STG(all_args, _log)
-    # end=================================HMACL components===================================
+    # end===================================HMACL components===================================
 
     cpi.update_stats(algo, mac)
 
