@@ -1,6 +1,10 @@
 import collections
+import datetime
 import os
+import random
+from copy import deepcopy
 
+import numpy as np
 import yaml
 from types import SimpleNamespace as NameSpace
 import torch as th
@@ -12,6 +16,24 @@ from hmacl.utils.logging_ import get_logger
 
 
 def main(all_args, _log):
+    # seed
+    if not hasattr(all_args, "seed"):
+        all_args.seed = np.random.randint(0, 100000)
+    random.seed(all_args.seed)
+    np.random.seed(all_args.seed)
+    th.random.manual_seed(all_args.seed)
+    # parallel runner need to setting new seed for envs
+    all_args.env_args.seed = all_args.seed
+
+    # setting target task env_config
+    all_args.tag_env_args = deepcopy(all_args.env_args)
+    all_args.tag_env_args["map_size"] = all_args.tag_env_args["tag_map_size"]
+
+    fmt_time = datetime.datetime.now().strftime('%Y-%m-%d_%H:%M:%S')
+    all_args.unique_token = f"{all_args.name}_seed{all_args.seed}_{all_args.env}-{all_args.env_args['scenario']}_{fmt_time}"
+
+    if args.use_wandb:
+        _log.setup_wandb(all_args)
 
     algo = Algo(all_args, _log)
     stg = STG(all_args.env, all_args.scenario, **all_args)

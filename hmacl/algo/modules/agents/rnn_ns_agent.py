@@ -1,5 +1,5 @@
 import torch.nn as nn
-from modules.agents.rnn_agent import RNNAgent
+from hmacl.algo.modules.agents.rnn_agent import RNNAgent
 import torch as th
 
 class RNNNSAgent(nn.Module):
