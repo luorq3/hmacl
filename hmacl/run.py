@@ -90,7 +90,6 @@ def main(all_args, _log):
 
     cpi.update_stats(algo, mac)
 
-    _log.console_logger.info("Evaluate target task in initial policies, stats: {}".format(metrics))
     n_timesteps = all_args.n_timesteps
     t = 0
     # steps_per_algo

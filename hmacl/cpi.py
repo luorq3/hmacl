@@ -45,6 +45,7 @@ class CPI:
     def eval_on_tag(self, algo):
         stats = algo.eval_tag_task()
         metrics = self.cal_metrics(stats)
+        self.logger.console_logger.info("Evaluate target task get metrics: {}".format(metrics))
         return stats, metrics
 
     def cal_metrics(self, stats):
