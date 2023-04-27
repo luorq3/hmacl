@@ -2,23 +2,16 @@ import os
 import time
 from hmacl.algo.utils.timehelper import time_left, time_str
 
-from learners import REGISTRY as le_REGISTRY
-
 
 class Algo:
 
-    def __init__(self, args, logger, runner, mac, buffer):
+    def __init__(self, args, logger, runner, mac, learner, buffer):
         self.args = args
         self.logger = logger
         self.runner = runner
         self.mac = mac
+        self.learner = learner
         self.buffer = buffer
-
-        # Learner
-        self.learner = le_REGISTRY[self.args.learner](self.mac, self.buffer.scheme, self.logger, self.args)
-
-        if self.args.use_cuda:
-            self.learner.cuda()
 
         if self.args.checkpoint_path != "":
 

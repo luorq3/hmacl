@@ -16,6 +16,7 @@ from hmacl.algo.components.transforms import OneHot
 from hmacl.algo.components.episode_buffer import ReplayBuffer
 from hmacl.algo.runners import REGISTRY as r_REGISTRY
 from hmacl.algo.controllers import REGISTRY as mac_REGISTRY
+from hmacl.algo.learners import REGISTRY as le_REGISTRY
 
 
 def main(all_args, _log):
@@ -79,15 +80,21 @@ def main(all_args, _log):
 
     # Give runner the scheme
     runner.setup(scheme=scheme, groups=groups, preprocess=preprocess, mac=mac)
+
+    # Learner
+    learner = le_REGISTRY[all_args.learner](mac, buffer.scheme, _log, all_args)
+
+    if all_args.use_cuda:
+        learner.cuda()
     # end==========================marl algorithm required components==========================
 
     # start=================================HMACL components===================================
-    algo = Algo(all_args, _log, runner, mac, buffer)
+    algo = Algo(all_args, _log, runner, mac, learner, buffer)
     cpi = CPI(all_args, _log)
     stg = STG(all_args, _log)
     # end===================================HMACL components===================================
 
-    cpi.update_stats(algo, mac)
+    cpi.update_stats(algo, learner, 0)
 
     n_timesteps = all_args.n_timesteps
     t = 0
