@@ -15,10 +15,6 @@ class M2ALE(MultiAgentEnv):
         self.camp = config.camp
         self.key = config.scenario
         self.episode_limit = config.time_limit
-        try:
-            self.expand_degree = config.expand_degree
-        except AttributeError:
-            self.expand_degree = None
 
         # stats
         self._episode_count = 0
@@ -44,6 +40,8 @@ class M2ALE(MultiAgentEnv):
         return self._env.units_dict.get(unique_id)
 
     def _init(self):
+        self._episode_steps = 0
+
         # self.agent_idx_dict = {agent_id: unique_id for agent_id, unique_id in enumerate(sorted(self._env.agents_unique_idx))}
         self.agent_idx_dict = {}
         action_dim = 0
@@ -137,7 +135,6 @@ class M2ALE(MultiAgentEnv):
         return self.action_dim
 
     def reset(self):
-        self._episode_steps = 0
         self._env.reset()
         self._init()
 
@@ -162,10 +159,13 @@ class M2ALE(MultiAgentEnv):
         self.battles_game = 0
         self.timeouts = 0
 
-    # It will take effect only AFTER reset!
-    def expand(self):
-        assert self.expand_degree is not None, "Expand degree is not assigned."
-        self._env.expand(self.expand_degree)
+    def update(self, config):
+        self.camp = config.camp
+        self.key = config.scenario
+        self.episode_limit = config.time_limit
+
+        self._env = M2ALECore(config)
+        self._init()
 
     def render(self):
         pass

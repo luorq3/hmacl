@@ -1,6 +1,5 @@
 from copy import deepcopy
 
-from hmacl.algo.envs import REGISTRY as env_REGISTRY
 from functools import partial
 from hmacl.algo.components.episode_buffer import EpisodeBatch
 import numpy as np
@@ -14,9 +13,6 @@ class EpisodeRunner:
         self.batch_size = self.args.batch_size_run
         assert self.batch_size == 1
 
-        self.env = env_REGISTRY[self.args.env](**self.args.env_args)
-        self.tag_env = env_REGISTRY[self.args.env](**self.args.tag_env_args)
-        self.episode_limit = self.env.episode_limit
         self.t = 0
 
         self.t_env = 0
@@ -31,12 +27,15 @@ class EpisodeRunner:
         # Log the first run
         self.log_train_stats_t = -1000000
 
+    def set_env(self, env, tag_env=None):
+        self.env = env
+        self.episode_limit = self.env.episode_limit
+        if tag_env is not None:
+            self.tag_env = tag_env
+
     def setup(self, scheme, groups, preprocess, mac):
         self.new_batch = partial(EpisodeBatch, scheme, groups, self.batch_size, self.episode_limit + 1,
                                  preprocess=preprocess, device=self.args.device)
-        self.mac = mac
-
-    def set_mac(self, mac):
         self.mac = mac
 
     def get_env_info(self):

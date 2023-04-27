@@ -41,7 +41,7 @@ def log_stats():
     print("=" * 50)
 
 
-for t in range(8):
-    log_stats()
-    env.expand()
-    env.clean_stats()
+# for t in range(8):
+#     log_stats()
+#     env.expand()
+#     env.clean_stats()

@@ -13,7 +13,8 @@ class TaskList:
         expand_d = self.task_args['expand_d']
         self.tasks = {_id: [x, x] for _id, x in enumerate(
             np.arange(initial_map_x, tag_map_x, expand_d))}
-        self.tasks[len(self.tasks)] = [tag_map_x] * 2
+        self.tag_task_id = len(self.tasks)
+        self.tasks[self.tag_task_id] = [tag_map_x] * 2
 
     def __len__(self):
         return len(self.tasks)
@@ -36,8 +37,7 @@ class STG:
         self.ls = np.zeros(len(self.tasks))
         self.loss_coef = self.args.loss_coef
         self.temperature = self.args.temperature
-        self.cur_task = 0
-        self.tag_task = self.tasks.tag_task
+        self.tag_task_id = self.tasks.tag_task_id
 
     def generate(self, task, metrics, td_error):
         if not self.task_seen[task]:
@@ -53,13 +53,17 @@ class STG:
             task_weights = (1 - self.loss_coef) * wms + self.loss_coef * wls
             if np.isclose(np.sum(task_weights), 0):
                 task_weights = np.ones_like(task_weights, dtype=np.float) / len(task_weights)
-
-            task_idx = np.random.choice(range(len(self.task_seen)), 1, p=task_weights)[0]
+            cur_task_id = np.random.choice(range(len(self.task_seen)), 1, p=task_weights)[0]
         else:
             self.max_task += 1
-            task_idx = self.max_task
+            cur_task_id = self.max_task
+        return cur_task_id
 
-        return task_idx
+    def get_task_config(self, task_id):
+        return self.tasks[task_id]
+
+    def get_tag_task_config(self):
+        return self.get_task_config(self.tag_task_id)
 
     def replay_weight(self, scores):
         temp = np.flip(scores.argsort())
@@ -81,5 +85,5 @@ class STG:
 #     ts = []
 #     for _ in range(10):
 #         ts.append(task)
-#         task = stg.generate(task, np.random.random(), np.random.random())
+#         stg.generate(task, np.random.random(), np.random.random())
 #     print(ts)

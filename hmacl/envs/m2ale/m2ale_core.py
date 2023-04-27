@@ -116,6 +116,3 @@ class M2ALECore:
                 info["of_win"] = 1
 
         return reward, done, info
-
-    def expand(self, expand_degree):
-        self._config.map_size = list(np.array(self.map_size) + expand_degree)

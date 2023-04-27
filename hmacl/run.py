@@ -17,6 +17,7 @@ from hmacl.algo.components.episode_buffer import ReplayBuffer
 from hmacl.algo.runners import REGISTRY as r_REGISTRY
 from hmacl.algo.controllers import REGISTRY as mac_REGISTRY
 from hmacl.algo.learners import REGISTRY as le_REGISTRY
+from hmacl.algo.envs import REGISTRY as env_REGISTRY
 
 
 def main(all_args, _log):
@@ -89,18 +90,24 @@ def main(all_args, _log):
     # end==========================marl algorithm required components==========================
 
     # start=================================HMACL components===================================
-    algo = Algo(all_args, _log, runner, mac, learner, buffer)
     cpi = CPI(all_args, _log)
     stg = STG(all_args, _log)
-    # end===================================HMACL components===================================
-
     task_id = 0
+    env_config = stg.get_task_config(task_id)
+    env = env_REGISTRY[all_args.env](**env_config)
+    tag_env_config = stg.get_tag_task_config()
+    tag_env = env_REGISTRY[all_args.env](**tag_env_config)
+    runner.set_env(env, tag_env)
+    algo = Algo(all_args, _log, runner, mac, learner, buffer)
     cpi.update_stats(algo, learner, 0)
+    # end===================================HMACL components===================================
 
     while runner.t_env < args.t_max:
         td_error = algo.run()
         cpi.improve(algo, learner, runner.t_env)
         task_id = stg.generate(task_id, cpi.cur_metrics, td_error)
+        env_config = stg.get_task_config(task_id)
+        env.update(env_config)
 
     # Train on target_task
     algo.run()
