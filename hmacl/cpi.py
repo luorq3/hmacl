@@ -23,8 +23,11 @@ class CPI:
 
         if self.improve_type == "hard":
             assert self.cur_metrics is not None, "Please invoke `update_stats` before `improve`."
-            if metrics > self.cur_metrics:
+            if metrics >= self.cur_metrics:
                 self.update_agent(learner, "hard", t_env, stats, metrics)
+            else:
+                # todo 恢复旧模型
+                pass
         elif self.improve_type == "soft":
             self.update_agent(learner, "soft", t_env)
             self.update_stats(algo, learner, t_env)

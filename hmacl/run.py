@@ -11,6 +11,7 @@ from config import parser
 from hmacl.algo.algo import Algo
 from hmacl.cpi import CPI
 from hmacl.stg import STG
+from hmacl.utils.common import increment_path
 from hmacl.utils.logging_ import get_logger
 from hmacl.algo.components.transforms import OneHot
 from hmacl.algo.components.episode_buffer import ReplayBuffer
@@ -30,6 +31,12 @@ def main(all_args, _log):
     th.random.manual_seed(all_args.seed)
     # parallel runner need to setting new seed for envs
     all_args.env_args["seed"] = all_args.seed
+
+    # result path
+    local_results_path = os.path.abspath(all_args.local_results_path)
+    all_args.exp = 'exp' if all_args.exp is None else all_args.exp
+    all_args.local_results_path = increment_path(local_results_path, all_args.exp, mkdir=True)
+
 
     fmt_time = datetime.datetime.now().strftime('%Y-%m-%d_%H:%M:%S')
     all_args.unique_token = f"{all_args.name}_seed{all_args.seed}_{all_args.env}-{all_args.env_args['scenario']}_{fmt_time}"

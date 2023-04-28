@@ -1,16 +1,10 @@
 import os
 from pathlib import Path
 
-print(__file__)
-dir_name = "../results"
 
-if not os.path.exists(dir_name):
-    os.makedirs(dir_name, exist_ok=True)
-
-
-def increment_path(path, exist_ok=False, sep='', mkdir=False):
+def increment_path(path, exp, exist_ok=False, sep='', mkdir=False):
     # Increment file or directory path, i.e. runs/exp --> runs/exp{sep}2, runs/exp{sep}3, ... etc.
-    path = Path(path) / Path('exp1')  # os-agnostic
+    path = Path(path) / Path(exp)  # os-agnostic
     if path.exists() and not exist_ok:
         path, suffix = (path.with_suffix(''), path.suffix) if path.is_file() else (path, '')
 
@@ -25,7 +19,3 @@ def increment_path(path, exist_ok=False, sep='', mkdir=False):
         path.mkdir(parents=True, exist_ok=True)  # make directory
 
     return path
-
-
-print(increment_path(dir_name, exist_ok=False, mkdir=True))
-
