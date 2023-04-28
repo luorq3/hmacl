@@ -32,14 +32,14 @@ def main(all_args, _log):
     # parallel runner need to setting new seed for envs
     all_args.env_args["seed"] = all_args.seed
 
-    # result path
+    # result path and exp_name
     local_results_path = os.path.abspath(all_args.local_results_path)
-    all_args.exp = 'exp' if all_args.exp is None else all_args.exp
-    all_args.local_results_path = increment_path(local_results_path, all_args.exp, mkdir=True)
-
+    exp_prefix = 'exp' if all_args.exp is None else all_args.exp
+    all_args.local_results_path = increment_path(local_results_path, exp_prefix, mkdir=True)
+    all_args.exp = os.path.basename(all_args.local_results_path)
 
     fmt_time = datetime.datetime.now().strftime('%Y-%m-%d_%H:%M:%S')
-    all_args.unique_token = f"{all_args.name}_seed{all_args.seed}_{all_args.env}-{all_args.env_args['scenario']}_{fmt_time}"
+    all_args.unique_token = f"seed{all_args.seed}_{fmt_time}"
 
     if all_args.use_wandb:
         _log.setup_wandb(all_args)

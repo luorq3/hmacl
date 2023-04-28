@@ -22,11 +22,11 @@ class Logger(logging.Logger):
         self.wandb_run = wandb.init(
             config=args,
             project=project_name + "-" + args.env,
-            group=args.wandb_group,  # todo group name need to be incremental automatically
+            group=args.exp + '-' + args.name + '-' + args.env_args['scenario'],
             entity=args.wandb_user_name,
             notes=socket.gethostname(),
-            name=args.unique_token,  # todo need to redesign
-            dir=args.unique_token,
+            name=args.unique_token,
+            dir=args.local_results_path,
             job_type=args.wandb_job_type,
             reinit=True
         )
