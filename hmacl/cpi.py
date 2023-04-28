@@ -63,7 +63,7 @@ class CPI:
 
     def save_model(self, learner, t_env):
         save_path = os.path.join(
-            self.args.local_results_path, "models", self.args.unique_token, "cpi", str(t_env)
+            self.args.local_results_path, self.args.unique_token, "models", "cpi", str(t_env)
         )
         os.makedirs(save_path, exist_ok=True)
         self.logger.console_logger.info("CPI saving models to {} at timestep {}".format(save_path, t_env))

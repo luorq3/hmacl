@@ -115,7 +115,7 @@ class Algo:
             ):
                 self.model_save_time = self.runner.t_env
                 save_path = os.path.join(
-                    self.args.local_results_path, "models", self.args.unique_token, str(self.runner.t_env)
+                    self.args.local_results_path, self.args.unique_token, "models", str(self.runner.t_env)
                 )
                 # "results/models/{}".format(unique_token)
                 os.makedirs(save_path, exist_ok=True)
