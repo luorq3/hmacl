@@ -20,7 +20,11 @@ def load_config_dict(args):
 
     # merge params and args
     for k, v in args.__dict__.items():
-        config_dict[k] = v
+        ks = k.split('.')
+        if len(ks) > 1:
+            config_dict[ks[0]][ks[1]] = v
+        else:
+            config_dict[k] = v
 
     return config_dict
 

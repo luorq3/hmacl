@@ -20,7 +20,7 @@ tag_map_size: [ 50, 50 ]
 expand_d: 2,
 pos_init_type: "random"
 reward_type: "sparse"
-obs_with_agent_id: False
+obs_with_agent_id: True
 offensive_agent:
   warship:
     - <<: *warship
