@@ -18,4 +18,4 @@ log_interval: 400
 runner_log_interval: 400
 learner_log_interval: 400
 t_max: 4000000
-t_update: 200000
+t_update: 100000
