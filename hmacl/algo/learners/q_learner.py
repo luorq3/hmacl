@@ -169,3 +169,16 @@ class QLearner:
         if self.mixer is not None:
             self.mixer.load_state_dict(th.load("{}/mixer.th".format(path), map_location=lambda storage, loc: storage))
         self.optimiser.load_state_dict(th.load("{}/opt.th".format(path), map_location=lambda storage, loc: storage))
+
+    def soft_update_models(self, path, tau):
+        self.mac.soft_update_model(path, tau)
+        self.target_mac.soft_update_model(path, tau)
+
+        if self.mixer is not None:
+            source_mixer = copy.deepcopy(self.mixer)
+            source_mixer.load_state_dict(th.load("{}/mixer.th".format(path), map_location=lambda storage, loc: storage))
+            for target_param, param in zip(self.mixer.parameters(), source_mixer.parameters()):
+                target_param.data.copy_(
+                    target_param.data * (1.0 - tau) + param.data * tau)
+            self.target_mixer = copy.deepcopy(self.mixer)
+        self.optimiser.load_state_dict(th.load("{}/opt.th".format(path), map_location=lambda storage, loc: storage))

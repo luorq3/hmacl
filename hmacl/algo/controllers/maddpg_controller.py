@@ -1,3 +1,5 @@
+import copy
+
 from hmacl.algo.modules.agents import REGISTRY as agent_REGISTRY
 from hmacl.algo.components.action_selectors import REGISTRY as action_REGISTRY
 import torch as th
@@ -96,6 +98,13 @@ class MADDPGMAC:
 
     def load_models(self, path):
         self.agent.load_state_dict(th.load("{}/agent.th".format(path), map_location=lambda storage, loc: storage))
+
+    def soft_update_model(self, path, tau):
+        source_agent = copy.deepcopy(self.agent)
+        source_agent.load_state_dict(th.load("{}/agent.th".format(path), map_location=lambda storage, loc: storage))
+        for target_param, param in zip(self.agent.parameters(), source_agent.parameters()):
+            target_param.data.copy_(
+                target_param.data * (1.0 - tau) + param.data * tau)
 
     def _build_agents(self, input_shape):
         self.agent = agent_REGISTRY[self.args.agent](input_shape, self.args)

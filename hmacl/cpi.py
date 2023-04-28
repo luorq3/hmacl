@@ -14,10 +14,6 @@ class CPI:
         self.stats = None  # {'returns': [], 'stats': {}}
         self.cur_metrics = None
 
-    def update_stats(self, algo, learner, t_env):
-        self.save_model(learner, t_env)
-        self.stats, self.cur_metrics = self.eval_on_tag(algo)
-
     def improve(self, algo, learner, t_env):
         stats, metrics = self.eval_on_tag(algo)
 
@@ -26,11 +22,10 @@ class CPI:
             if metrics >= self.cur_metrics:
                 self.update_agent(learner, "hard", t_env, stats, metrics)
             else:
-                # todo 恢复旧模型
-                pass
+                # recover saved model, model no changes thus stats and metrics no need change
+                learner.load_models(self.agent_path)
         elif self.improve_type == "soft":
             self.update_agent(learner, "soft", t_env)
-            self.update_stats(algo, learner, t_env)
         else:
             raise ValueError("No such model update approach: {}.".format(self.improve_type))
 
@@ -40,10 +35,12 @@ class CPI:
             self.stats = stats
             self.cur_metrics = metrics
         else:
-            # todo copy parameters proportionally to self.agent, no need update mac.agent
-            # 1. 将旧模型的一部份复制到新模型
-            # 2. 调用update_stats更新self.agent和metrics
-            pass
+            learner.soft_update_models(self.agent_path, self.args.tau)
+            self.update_stats(learner, t_env)
+
+    def update_stats(self, algo, learner, t_env):
+        self.save_model(learner, t_env)
+        self.stats, self.cur_metrics = self.eval_on_tag(algo)
 
     def eval_on_tag(self, algo):
         stats = algo.eval_tag_task()
