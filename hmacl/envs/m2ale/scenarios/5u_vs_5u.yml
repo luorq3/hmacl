@@ -15,12 +15,12 @@ unit:
     sight_range: 4
     dmg: 3
 
-map_size: [ 10, 10 ]
-tag_map_size: [ 50, 50 ]
-expand_d: 2,
-pos_init_type: "random"
-reward_type: "sparse"
-obs_with_agent_id: True
+#map_size: [ 10, 10 ]
+#tag_map_size: [ 50, 50 ]
+#expand_d: 2,
+#pos_init_type: "random"
+#reward_type: "sparse"
+#obs_with_agent_id: True
 offensive_agent:
   warship:
     - <<: *warship

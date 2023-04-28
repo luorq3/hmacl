@@ -8,6 +8,8 @@ env_args:
   map_size: [10, 10]
   tag_map_size: [50, 50]
   expand_d: 2
+  pos_init_type: "random"
+  obs_with_agent_id: True
 
 test_greedy: True
 test_nepisode: 100
