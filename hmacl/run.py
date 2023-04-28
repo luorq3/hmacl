@@ -38,7 +38,7 @@ def main(all_args, _log):
     all_args.local_results_path = increment_path(local_results_path, exp_prefix, mkdir=True)
     all_args.exp = os.path.basename(all_args.local_results_path)
 
-    fmt_time = datetime.datetime.now().strftime('%Y-%m-%d_%H:%M:%S')
+    fmt_time = datetime.datetime.now().strftime('%m-%d_%H-%M')
     all_args.unique_token = f"seed{all_args.seed}_{fmt_time}"
 
     if all_args.use_wandb:

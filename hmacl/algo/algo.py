@@ -59,16 +59,22 @@ class Algo:
         self.model_save_time = 0
 
     def run(self):
+
+        # count every run within t_update
+        t_run = 0
+
         td_error = 0
         start_time = time.time()
         last_time = start_time
 
         self.logger.info("Beginning training for {} timesteps".format(self.args.t_update))
 
-        while self.runner.t_env <= self.args.t_update:
+        while t_run <= self.args.t_update:
 
             # Run for a whole episode at a time
             episode_batch = self.runner.run(test_mode=False)
+            t_run += self.runner.t
+
             self.buffer.insert_episode_batch(episode_batch)
 
             if self.buffer.can_sample(self.args.batch_size):
