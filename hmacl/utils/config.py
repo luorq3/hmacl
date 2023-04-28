@@ -8,7 +8,7 @@ import torch as th
 def load_config_dict(args):
     env_config_name = args.env
     algo_config_name = args.name
-    with open(os.path.join(os.path.dirname(__file__), "algo", "config", "default.yaml"), "r") as f:
+    with open(os.path.join(os.path.dirname(os.path.dirname(__file__)), "algo", "config", "default.yaml"), "r") as f:
         try:
             config_dict = yaml.load(f, Loader=yaml.FullLoader)
         except yaml.YAMLError as exc:
@@ -47,7 +47,7 @@ def args_sanity_check(config, _log):
 def _get_config(config_name, subfolder):
 
     if config_name is not None:
-        with open(os.path.join(os.path.dirname(__file__), "algo", "config", subfolder, "{}.yaml".format(config_name)), "r") as f:
+        with open(os.path.join(os.path.dirname(os.path.dirname(__file__)), "algo", "config", subfolder, "{}.yaml".format(config_name)), "r") as f:
             try:
                 config_dict = yaml.load(f, Loader=yaml.FullLoader)
             except yaml.YAMLError as exc:

@@ -106,18 +106,36 @@ def main(all_args, _log):
     cpi.update_stats(algo, learner, 0)
     # end===================================HMACL components===================================
 
+    _log_prefix = "hmacl_"
+    _log.log_stat(_log_prefix + 'task', task_id, runner.t_env)
+    _log.log_stat(_log_prefix + 'map_size_X', env_config['map_size'][0], runner.t_env)
+
     n_hmacl_episode = all_args.t_max // all_args.t_update
     hmacl_episode = 0
+
+    _log.console_logger.info(f"Hmacl episode starting, generated task: {task_id}.")
     while hmacl_episode < n_hmacl_episode:
         td_error = algo.run()
+        _log.log_stat(_log_prefix + 'td_error', td_error, runner.t_env)
+
         cpi.improve(algo, learner, runner.t_env)
         task_id = stg.generate(task_id, cpi.cur_metrics, td_error)
         env_config = stg.get_task_config(task_id)
         env.update(env_config)
+
+        _log.log_stat(_log_prefix + 'task', task_id, runner.t_env)
+        _log.log_stat(_log_prefix + 'map_size_X', env_config['map_size'][0], runner.t_env)
+        _log.console_logger.info(f"Hmacl episode: {hmacl_episode} completed, generated task: {task_id}.")
+
         hmacl_episode += 1
 
+    _log.console_logger.info(f"Hmacl episode ended, count for hmacl_episode: {hmacl_episode}.")
     # Train on target_task
-    algo.run()
+    env.update(tag_env_config)
+    _log.console_logger.info(f"Hmacl turning started, tag_task: {tag_env_config['map_size']}.")
+    td_error = algo.run()
+    cpi.save_model(learner, "latest")
+    _log.console_logger.info(f"Hmacl turning ended, td_error: {td_error}.")
 
     runner.close_env()
     _log.console_logger.info("Finished Training")
