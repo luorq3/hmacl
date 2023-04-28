@@ -1,5 +1,4 @@
 import os
-from copy import deepcopy
 
 import numpy as np
 
@@ -51,6 +50,7 @@ class CPI:
 
     def cal_metrics(self, stats):
         if self.metrics_key == "win_rate":
+            stats = stats["stats"]
             battle_won = stats["battle_won"]
             n_episodes = stats["n_episodes"]
             metrics = float(battle_won) / n_episodes

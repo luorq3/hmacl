@@ -22,6 +22,7 @@ class TaskList:
     def __getitem__(self, item):
         task_args = deepcopy(self.task_args)
         task_args['map_size'] = self.tasks[item]
+        return task_args
 
 
 class STG:

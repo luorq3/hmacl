@@ -31,10 +31,6 @@ def main(all_args, _log):
     # parallel runner need to setting new seed for envs
     all_args.env_args["seed"] = all_args.seed
 
-    # setting target task env_config
-    # all_args.tag_env_args = deepcopy(all_args.env_args)
-    # all_args.tag_env_args["map_size"] = all_args.tag_env_args["tag_map_size"]
-
     fmt_time = datetime.datetime.now().strftime('%Y-%m-%d_%H:%M:%S')
     all_args.unique_token = f"{all_args.name}_seed{all_args.seed}_{all_args.env}-{all_args.env_args['scenario']}_{fmt_time}"
 
@@ -105,12 +101,15 @@ def main(all_args, _log):
     cpi.update_stats(algo, learner, 0)
     # end===================================HMACL components===================================
 
-    while runner.t_env < args.t_max:
+    n_hmacl_episode = all_args.t_max // all_args.t_update
+    hmacl_episode = 0
+    while hmacl_episode < n_hmacl_episode:
         td_error = algo.run()
         cpi.improve(algo, learner, runner.t_env)
         task_id = stg.generate(task_id, cpi.cur_metrics, td_error)
         env_config = stg.get_task_config(task_id)
         env.update(env_config)
+        hmacl_episode += 1
 
     # Train on target_task
     algo.run()

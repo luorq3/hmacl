@@ -160,6 +160,7 @@ class M2ALE(MultiAgentEnv):
         self.timeouts = 0
 
     def update(self, config):
+        config = Namespace(**config)
         self.camp = config.camp
         self.key = config.scenario
         self.episode_limit = config.time_limit
