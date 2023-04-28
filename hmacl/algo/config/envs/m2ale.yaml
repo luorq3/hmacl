@@ -10,12 +10,12 @@ env_args:
   expand_d: 2
 
 test_greedy: True
-test_nepisode: 1
-eval_nepisode: 1
-test_interval: 400
-eval_interval: 200  # evaluate target task interval
+test_nepisode: 100
+eval_nepisode: 200
+test_interval: 5000
+eval_interval: 1000  # evaluate target task interval
 log_interval: 400
 runner_log_interval: 400
 learner_log_interval: 400
-t_max: 2500
-t_update: 600
+t_max: 4000000
+t_update: 200000
