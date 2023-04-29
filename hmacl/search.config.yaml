@@ -62,9 +62,9 @@ grid-search:
     - 100
   "--test_interval":
     - 25000
-  "eval_nepisode":
+  "--eval_nepisode":
     - 100
-  "eval_interval":
+  "--eval_interval":
     - 5000
   "--log_interval":
     - 25000
@@ -84,7 +84,7 @@ grid-search-groups:
     - "--env_args.time_limit": 100
     - "--env_args.camp": "offensive"
     - "--env_args.reward_type": "dense"
-    - "--env_args.map_size": [8, 8]
-    - "--env_args.tag_map_size": [40, 40]
+#    - "--env_args.map_size": [8, 8]
+#    - "--env_args.tag_map_size": [40, 40]
     - "--env_args.expand_d": 2
     - "--env_args.pos_init_type": "random"

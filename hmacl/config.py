@@ -49,8 +49,8 @@ def get_config():
     parser.add_argument("--env_args.time_limit", type=int, default=100, help="")
     parser.add_argument("--env_args.camp", type=str, default="offensive", help="")
     parser.add_argument("--env_args.reward_type", type=str, default="dense", help="")
-    parser.add_argument("--env_args.map_size", type=list, default=[8, 8], help="")
-    parser.add_argument("--env_args.tag_map_size", type=list, default=[40, 40], help="")
+    # parser.add_argument("--env_args.map_size", type=list, default=[8, 8], nargs=2, help="")
+    # parser.add_argument("--env_args.tag_map_size", type=list, default=[40, 40], nargs=2, help="")
     parser.add_argument("--env_args.expand_d", type=int, default=2, help="")
     parser.add_argument("--env_args.pos_init_type", type=str, default="random", help="")
 
