@@ -22,7 +22,7 @@ class Logger(logging.Logger):
         self.wandb_run = wandb.init(
             config=args,
             project=args.project + "-" + args.env,
-            group=args.exp + '-' + args.name + '-' + args.env_args['scenario'],
+            group=args.exp,
             entity=args.wandb_user_name,
             notes=socket.gethostname(),
             name=args.unique_token,

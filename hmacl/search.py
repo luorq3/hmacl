@@ -99,7 +99,17 @@ def locally(combos, cpus):
     )
 
     pool = multiprocessing.Pool(processes=cpus)
-    print(pool.map(work, configs))
+
+    jobs = len(configs)
+    job_batch = 5
+    n = jobs // job_batch
+    if n * job_batch < jobs:
+        n += 1
+    for i in range(n):
+        start = i * job_batch
+        end = min((i + 1) * job_batch, jobs)
+        print(f"Grid search rounds: {start}/{end}.")
+        print(pool.map(work, configs[start:end]))
 
 
 @run.command()
