@@ -1,3 +1,7 @@
+import os
+import sys
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+
 import multiprocessing
 import subprocess
 from itertools import product
@@ -7,6 +11,8 @@ import random
 import click
 
 _CPU_COUNT = multiprocessing.cpu_count() - 1
+
+run_path = os.path.join(os.path.dirname(__file__), "run.py")
 
 
 def _flatten_lists(object):
@@ -42,7 +48,7 @@ def _compute_combinations(config_file, shuffle, seeds):
     configs = list(product(*combinations))
     configs = [list(_flatten_lists(c)) for c in configs]
 
-    configs = [[f"hypergroup=hp_grp_{i}"] + c for i, c in enumerate(configs)]
+    # configs = [[f"hypergroup=hp_grp_{i}"] + c for i, c in enumerate(configs)]
 
     configs = list(product(configs, [f"--seed={i}" for i in range(seeds)]))
     configs = [list(_flatten_lists(c)) for c in configs]
@@ -85,7 +91,7 @@ def run(ctx, config, shuffle, seeds):
 )
 @click.pass_obj
 def locally(combos, cpus):
-    configs = ["python run.py " + " ".join([c for c in combo]) for combo in combos]
+    configs = ["python " + run_path + " " + " ".join([c for c in combo]) for combo in combos]
 
     click.confirm(
         f"There are {click.style(str(len(combos)), fg='red')} combinations of configurations. Up to {cpus} will run in parallel. Continue?",
@@ -107,7 +113,7 @@ def single(combos, index):
     """
 
     config = combos[index]
-    cmd = "python run.py " + " ".join([c for c in config])
+    cmd = "python " + run_path + " " + " ".join([c for c in config])
     print(cmd)
     work(cmd)
 
