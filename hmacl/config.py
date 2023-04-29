@@ -26,5 +26,5 @@ def get_config():
     parser.add_argument("--wandb_job_type", type=str, default="debug", help="")
     parser.add_argument("--use_wandb", default=False, action="store_true", help="")
     # env_args
-    parser.add_argument("--env_args.obs_with_agent_id", default=True, action="store_false", help="")
+    # parser.add_argument("--env_args.obs_with_agent_id", default=False, action="store_true", help="")
     return parser
