@@ -7,7 +7,7 @@ import random
 import numpy as np
 from types import SimpleNamespace as NameSpace
 import torch as th
-from config import parser
+from config import get_config
 from hmacl.algo.algo import Algo
 from hmacl.cpi import CPI
 from hmacl.stg import STG
@@ -36,7 +36,7 @@ def main(all_args, _log):
     # result path and exp_name
     local_results_path = os.path.abspath(all_args.local_results_path)
     exp_prefix = 'exp' if all_args.exp is None else all_args.exp
-    all_args.local_results_path = increment_path(local_results_path, exp_prefix, mkdir=True)
+    all_args.local_results_path = increment_path(local_results_path, exp_prefix, exist_ok=all_args.exp_exist_ok, mkdir=True)
     all_args.exp = os.path.basename(all_args.local_results_path)
 
     fmt_time = datetime.datetime.now().strftime('%m-%d_%H-%M')
@@ -146,6 +146,7 @@ def main(all_args, _log):
 
 if __name__ == "__main__":
     _log = get_logger()
+    parser = get_config()
     args = parser.parse_args()
     config_dict = load_config_dict(args)
     args_sanity_check(config_dict, _log)
