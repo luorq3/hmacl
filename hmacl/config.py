@@ -1,7 +1,7 @@
 from argparse import ArgumentParser
 
 
-parser = ArgumentParser("HMACL", add_help=False)
+parser = ArgumentParser("HMACL")
 parser.add_argument("--env", type=str, default="m2ale", help="")
 parser.add_argument("--name", type=str, default="vdn", help="")
 parser.add_argument("--improve_type", type=str, default="hard", help="")
@@ -18,5 +18,3 @@ parser.add_argument("--wandb_job_type", type=str, default="debug", help="")
 parser.add_argument("--use_wandb", type=bool, default=False, help="")
 parser.add_argument("--use_rnn", type=bool, default=True, help="")
 parser.add_argument("--env_args.obs_with_agent_id", type=bool, default=True, help="")
-parser.add_argument("--env_args.abc", type=int, default=123, help="")
-parser.add_argument("--env_args.alpha", type=str, default="abc", help="")
