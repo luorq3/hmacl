@@ -108,7 +108,7 @@ def locally(combos, cpus):
     for i in range(n):
         start = i * job_batch
         end = min((i + 1) * job_batch, jobs)
-        print(f"Grid search rounds: {start}/{end}.")
+        print(f"Grid search rounds: {i}/{n}.")
         print(pool.map(work, configs[start:end]))
 
 
