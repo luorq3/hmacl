@@ -1,52 +1,90 @@
 exclude: null
 grid-search:
 
-  "--config":
-    - "iql"
-    - "iql_ns"
+  "--name":
+    - "vdn"
+    - "vdn_ns"
 
-  lr:
-    - 0.0001
+  "--exp":
+    - "grid-search"
+
+  "--runner":
+    - "episode"
+
+  "--loss_coef":
+    - 0.2
+    - 0.5
+    - 0.8
+
+  "--temperature":
+    - 0.1
+    - 0.4
+    - 0.7
+
+  "--buffer_size":
+    - 2000
+    - 5000
+
+  "--lr":
     - 0.0003
-    - 0.0005
 
-  standardise_rewards:
+  "--standardise_rewards":
     - True
 
-  use_rnn:
-    - False
+  "--use_rnn":
+    - True
 
-  target_update_interval_or_tau:
+  "--wandb_job_type":
+    - "grid-search"
+
+  "--target_update_interval_or_tau":
     - 200
     - 0.01
 
-  hidden_dim:
-    - 64
+  "--hidden_dim":
     - 128
 
-  evaluation_epsilon:
-    - 0.0
+  "--evaluation_epsilon":
     - 0.05
 
-  epsilon_anneal_time:
-    - 50000
+  "--epsilon_anneal_time":
+    - 100000
     - 200000
 
-  t_max:
-    - 2050000
-  test_nepisode:
-    - 100
-  test_interval:
-    - 25000
-  log_interval:
-    - 25000
-  save_model_interval:
+  "--t_update":
     - 50000
-  save_model:
+    - 20000
+    - 8000
+    - 4000
+  "--t_max":
+    - 2040000
+  "--test_nepisode":
+    - 100
+  "--test_interval":
+    - 25000
+  "eval_nepisode":
+    - 100
+  "eval_interval":
+    - 5000
+  "--log_interval":
+    - 25000
+  "--runner_log_interval":
+    - 25000
+  "--learner_log_interval":
+    - 25000
+  "--save_model_interval":
+    - 50000
+  "--save_model":
     - false
     
 grid-search-groups:
   env0:
-    - "--env-config": "gymma"
-    - env_args.key: lbforaging:Foraging-8x8-2p-3f-v0
-    - env_args.time_limit: 25
+    - "--env": "m2ale"
+    - "--env_args.scenario": "5u_vs_5u"
+    - "--env_args.time_limit": 100
+    - "--env_args.camp": "offensive"
+    - "--env_args.reward_type": "dense"
+    - "--env_args.map_size": [8, 8]
+    - "--env_args.tag_map_size": [40, 40]
+    - "--env_args.expand_d": 2
+    - "--env_args.pos_init_type": "random"
