@@ -1,13 +1,14 @@
+import random
 from argparse import ArgumentParser
 
 
 def get_config():
     parser = ArgumentParser("HMACL")
     # required
-    parser.add_argument("--env", type=str, default="m2ale", help="")
-    parser.add_argument("--name", type=str, default="vdn", help="")
+    parser.add_argument("--env", type=str, default="m2ale", help="", required=True)
+    parser.add_argument("--name", type=str, default="vdn", help="", required=True)
     # global setting
-    parser.add_argument("--seed", type=int, default=0, help="")
+    parser.add_argument("--seed", type=int, default=random.randint(10000, 99999), help="")
     parser.add_argument("--exp", type=str, default='exp', help="")
     parser.add_argument("--exp_exist_ok", default=True, action="store_false", help="")
     # hmacl
