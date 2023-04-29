@@ -21,7 +21,7 @@ class Logger(logging.Logger):
     def setup_wandb(self, args):
         self.wandb_run = wandb.init(
             config=args,
-            project=project_name + "-" + args.env,
+            project=args.project + "-" + args.env,
             group=args.exp + '-' + args.name + '-' + args.env_args['scenario'],
             entity=args.wandb_user_name,
             notes=socket.gethostname(),

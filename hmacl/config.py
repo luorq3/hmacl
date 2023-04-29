@@ -6,6 +6,7 @@ from argparse import ArgumentParser
 def get_config():
     parser = ArgumentParser("HMACL")
     # required
+    parser.add_argument("--project", type=str, default="hmacl", help="", required=True)
     parser.add_argument("--env", type=str, default="m2ale", help="", required=True)
     parser.add_argument("--name", type=str, default="vdn", help="", required=True)
     # experiment name and dir
