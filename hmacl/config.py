@@ -7,20 +7,20 @@ def get_config():
     # required
     parser.add_argument("--env", type=str, default="m2ale", help="", required=True)
     parser.add_argument("--name", type=str, default="vdn", help="", required=True)
-    # global setting
-    parser.add_argument("--seed", type=int, default=random.randint(10000, 99999), help="")
+    # experiment name and dir
+    parser.add_argument("--seed", type=int, default=random.randint(1000, 99999), help="")
     parser.add_argument("--exp", type=str, default='exp', help="")
-    parser.add_argument("--exp_exist_ok", default=True, action="store_false", help="")
+    parser.add_argument("--exp_exist_ok", default=False, action="store_true", help="")
     # hmacl
     parser.add_argument("--improve_type", type=str, default="hard", help="")
     parser.add_argument("--metrics", type=str, default="win_rate", help="")
     parser.add_argument("--loss_coef", type=float, default=0.5, help="")
     parser.add_argument("--temperature", type=float, default=1, help="")
-    parser.add_argument("--save_cpi_model", default=True, action="store_false", help="")
+    parser.add_argument("--save_cpi_model", default=False, action="store_true", help="")
     # algo
     parser.add_argument("--save_model", default=False, action="store_true", help="")
     parser.add_argument("--runner", type=str, default='episode', help="")
-    parser.add_argument("--use_rnn", default=True, action="store_false", help="")
+    parser.add_argument("--use_rnn", default=False, action="store_true", help="")
     # log and file path
     parser.add_argument("--wandb_user_name", type=str, default="luorq3", help="")
     parser.add_argument("--wandb_job_type", type=str, default="debug", help="")
