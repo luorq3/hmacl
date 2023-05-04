@@ -20,23 +20,25 @@ class CPI:
         if self.improve_type == "hard":
             assert self.cur_metrics is not None, "Please invoke `update_stats` before `improve`."
             if metrics >= self.cur_metrics:
-                self.update_agent(learner, "hard", t_env, stats, metrics)
+                self.update_agent(learner, "hard", t_env, stats=stats, metrics=metrics)
             else:
                 # recover saved model, model no changes thus stats and metrics no need change
                 learner.load_models(self.agent_path)
         elif self.improve_type == "soft":
-            self.update_agent(learner, "soft", t_env)
+            self.update_agent(learner, "soft", t_env, algo=algo)
         else:
             raise ValueError("No such model update approach: {}.".format(self.improve_type))
 
-    def update_agent(self, learner, update_type, t_env, stats=None, metrics=None):
+    def update_agent(self, learner, update_type, t_env, algo=None, stats=None, metrics=None):
         if update_type == "hard":
+            assert metrics is not None, "Metrics can NOT be None when hard update policy."
             self.save_model(learner, t_env)
             self.stats = stats
             self.cur_metrics = metrics
         else:
+            assert algo is not None, "Algo can NOT be None when soft update policy."
             learner.soft_update_models(self.agent_path, self.args.tau)
-            self.update_stats(learner, t_env)
+            self.update_stats(algo, learner, t_env)
 
     def update_stats(self, algo, learner, t_env):
         self.save_model(learner, t_env)

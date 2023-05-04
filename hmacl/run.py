@@ -22,8 +22,13 @@ from hmacl.algo.learners import REGISTRY as le_REGISTRY
 from hmacl.algo.envs import REGISTRY as env_REGISTRY
 
 
-def main(all_args, _log):
+def main(all_args, _log, tuning=False):
     # start================================args and log========================================
+    # ray tune
+    if tuning:
+        from ray.air import session
+
+    # seed
     random.seed(all_args.seed)
     np.random.seed(all_args.seed)
     th.random.manual_seed(all_args.seed)
@@ -124,6 +129,8 @@ def main(all_args, _log):
         _log.log_stat(_log_prefix + 'td_error', td_error, runner.t_env)
 
         cpi.improve(algo, learner, runner.t_env)
+        if tuning:
+            session.report({all_args.metrics: cpi.cur_metrics})
         task_id = stg.generate(task_id, cpi.cur_metrics, td_error)
         env_config = stg.get_task_config(task_id)
         env.update(env_config)
@@ -144,6 +151,19 @@ def main(all_args, _log):
 
     runner.close_env()
     _log.console_logger.info("Finished Training")
+
+
+def search(log, **kwargs):
+    _log = log
+    parser = get_config()
+    args = parser.parse_args()
+    for k, v in kwargs.items():
+        setattr(args, k, v)
+    config_dict = load_config_dict(args)
+    args_sanity_check(config_dict, _log)
+    all_args = NameSpace(**config_dict)
+    all_args.device = "cuda" if all_args.use_cuda else "cpu"
+    main(all_args, _log, tuning=True)
 
 
 if __name__ == "__main__":

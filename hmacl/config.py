@@ -6,10 +6,10 @@ from argparse import ArgumentParser
 def get_config():
     parser = ArgumentParser("HMACL")
     # required
-    parser.add_argument("--project", type=str, default="hmacl", help="", required=True)
-    parser.add_argument("--env", type=str, default="m2ale", help="", required=True)
-    parser.add_argument("--name", type=str, default="vdn", help="", required=True)
-    # experiment name and dir
+    parser.add_argument("--project", type=str, default="hmacl", help="")
+    parser.add_argument("--env", type=str, default="m2ale", help="")
+    parser.add_argument("--name", type=str, default="vdn", help="")
+    # # experiment name and dir
     parser.add_argument("--seed", type=int, default=random.randint(1000, 99999), help="")
     parser.add_argument("--exp", type=str, default='exp', help="")
     parser.add_argument("--exp_exist_ok", default=False, type=lambda x: bool(strtobool(x)), help="")
