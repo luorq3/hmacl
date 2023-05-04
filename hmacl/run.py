@@ -153,11 +153,11 @@ def main(all_args, _log, tuning=False):
     _log.console_logger.info("Finished Training")
 
 
-def search(**kwargs):
+def search(config):
     _log = get_logger()
     parser = get_config()
     args = parser.parse_args()
-    for k, v in kwargs.items():
+    for k, v in config.items():
         setattr(args, k, v)
     config_dict = load_config_dict(args)
     args_sanity_check(config_dict, _log)
