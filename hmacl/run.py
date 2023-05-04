@@ -156,7 +156,8 @@ def main(all_args, _log, tuning=False):
 def search(config):
     _log = get_logger()
     parser = get_config()
-    args = parser.parse_args()
+    args, unknow = parser.parse_known_args()
+    _log.console_logger.info(unknow)
     for k, v in config.items():
         setattr(args, k, v)
     config_dict = load_config_dict(args)
