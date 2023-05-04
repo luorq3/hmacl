@@ -21,15 +21,15 @@ def get_config():
     parser.add_argument("--save_cpi_model", default=True, type=lambda x: bool(strtobool(x)), help="")
     # time
     parser.add_argument("--t_max", type=int, default=2040000, help="")
-    parser.add_argument("--t_update", type=int, default=5000, help="")
+    parser.add_argument("--t_update", type=int, default=20000, help="")
     parser.add_argument("--test_nepisode", type=int, default=100, help="")
     parser.add_argument("--eval_nepisode", type=int, default=100, help="")
-    parser.add_argument("--test_interval", type=int, default=5000, help="")
+    parser.add_argument("--test_interval", type=int, default=25000, help="")
     parser.add_argument("--eval_interval", type=int, default=5000, help="")
     parser.add_argument("--log_interval", type=int, default=25000, help="")
     parser.add_argument("--runner_log_interval", type=int, default=25000, help="")
     parser.add_argument("--learner_log_interval", type=int, default=25000, help="")
-    parser.add_argument("--save_model_interval", type=int, default=25000, help="")
+    parser.add_argument("--save_model_interval", type=int, default=50000, help="")
     # algo
     parser.add_argument("--save_model", default=False, type=lambda x: bool(strtobool(x)), help="")
     parser.add_argument("--runner", type=str, default='episode', help="")
