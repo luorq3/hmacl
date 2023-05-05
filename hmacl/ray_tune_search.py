@@ -7,7 +7,7 @@ ray.init()
 
 search_space = {
     "project": "tune-search",
-    "name": tune.grid_search(["vdn", "vdn_ns"]),
+    "name": tune.grid_search(["vdn"]),
     "loss_coef": tune.choice([0.1, 0.2, 0.3]),
     "temperature": tune.quniform(0.0, 0.7, 0.1),
     "buffer_size": tune.grid_search([2000, 5000]),
@@ -20,11 +20,13 @@ search_space = {
     "use_wandb": True
 }
 
+trainable_with_cpu_gpu = tune.with_resources(search, {"cpu": 20, "gpu": 1})
+
 tuner = tune.Tuner(
-    search,
+    trainable_with_cpu_gpu,
     param_space=search_space,
     tune_config=tune.TuneConfig(
-        num_samples=50,
+        num_samples=20,
         scheduler=ASHAScheduler(
             metric="win_rate",
             mode="max"

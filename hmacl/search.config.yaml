@@ -1,12 +1,13 @@
 exclude: null
 grid-search:
 
+  "--project":
+    - "grid-search"
+
   "--name":
     - "vdn"
-    - "vdn_ns"
-
   "--exp":
-    - "grid-search"
+    - "search-vdn"
 
   "--runner":
     - "episode"
@@ -23,7 +24,7 @@ grid-search:
 
   "--buffer_size":
     - 2000
-    - 5000
+#    - 5000
 
   "--lr":
     - 0.0003
@@ -48,11 +49,11 @@ grid-search:
     - 0.05
 
   "--epsilon_anneal_time":
-    - 100000
+#    - 100000
     - 200000
 
   "--t_update":
-    - 50000
+#    - 50000
     - 20000
     - 8000
     - 4000
@@ -84,7 +85,5 @@ grid-search-groups:
     - "--env_args.time_limit": 100
     - "--env_args.camp": "offensive"
     - "--env_args.reward_type": "dense"
-#    - "--env_args.map_size": [8, 8]
-#    - "--env_args.tag_map_size": [40, 40]
     - "--env_args.expand_d": 2
     - "--env_args.pos_init_type": "random"
