@@ -1,3 +1,4 @@
+import copy
 import datetime
 import multiprocessing
 
@@ -35,9 +36,10 @@ config = {
 }
 
 configs = []
-pool = multiprocessing.Pool(processes=cpus)
-for i in range(1, 5):
-    config["seed"] = i
-    configs.append(config)
-pool.map(search, configs)
+for i in range(1, 6):
+    config_ = copy.deepcopy(config)
+    config_["seed"] = i
+    configs.append(config_)
+with multiprocessing.Pool(processes=cpus) as p:
+    p.map(search, configs)
 

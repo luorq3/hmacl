@@ -11,8 +11,8 @@ project_name = "hmacl"
 
 class Logger(logging.Logger):
     def __init__(self, name: str):
-        super().__init__(name)
-        self.console_logger = set_logger()
+        super().__init__(project_name)
+        self.console_logger = set_logger(name)
         self.stats = defaultdict(lambda: [])
 
         self.use_wandb = False
@@ -66,8 +66,8 @@ class Logger(logging.Logger):
 
 
 # set up a custom logger
-def set_logger():
-    logger = logging.getLogger()
+def set_logger(name):
+    logger = logging.getLogger(name)
     logger.handlers = []
     ch = logging.StreamHandler()
     formatter = logging.Formatter('[%(levelname)s %(asctime)s] %(name)s %(message)s', '%H:%M:%S')
@@ -78,8 +78,8 @@ def set_logger():
     return logger
 
 
-def get_logger():
-    log = Logger(project_name)
+def get_logger(name):
+    log = Logger(name)
     return log
 
 
