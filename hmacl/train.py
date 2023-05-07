@@ -36,7 +36,7 @@ config = {
 }
 
 configs = []
-for i in range(1, 6):
+for i in range(1, 1 + num_seeds):
     config_ = copy.deepcopy(config)
     config_["seed"] = i
     configs.append(config_)
