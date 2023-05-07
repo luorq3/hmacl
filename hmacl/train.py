@@ -16,7 +16,7 @@ config = {
     "name": "vdn_ns",
     "env": "m2ale",
     # experiment name and dir
-    "exp": datetime.datetime.now().strftime('%m-%d_%H-%M-%s'),
+    "exp": datetime.datetime.now().strftime('%m-%d_%H-%M-%S'),
     "exp_exist_ok": True,
     # hmacl
     "loss_coef": 0.1,
