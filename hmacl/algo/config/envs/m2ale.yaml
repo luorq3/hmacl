@@ -6,7 +6,7 @@ env_args:
   camp: "offensive"
   reward_type: "dense"
   map_size: [8, 8]
-  tag_map_size: [40, 40]
+  tag_map_size: [50, 50]
   expand_d: 2
   pos_init_type: "random"
   obs_with_agent_id: True

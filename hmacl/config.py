@@ -47,7 +47,7 @@ def get_config():
     parser.add_argument("--use_wandb", default=True, type=lambda x: bool(strtobool(x)), help="")
     # env_args
     parser.add_argument("--env_args.scenario", type=str, default="5u_vs_5u", help="")
-    parser.add_argument("--env_args.time_limit", type=int, default=100, help="")
+    parser.add_argument("--env_args.time_limit", type=int, default=200, help="")
     parser.add_argument("--env_args.camp", type=str, default="offensive", help="")
     parser.add_argument("--env_args.reward_type", type=str, default="dense", help="")
     # parser.add_argument("--env_args.map_size", type=list, default=[8, 8], nargs=2, help="")
