@@ -154,7 +154,10 @@ def main(all_args, _log, tuning=False):
 
 
 def search(config):
-    _log = get_logger(f"proc-seed{config['seed']}")
+    try:
+        _log = get_logger(f"proc-seed{config['seed']}")
+    except KeyError:
+        _log = get_logger(f"proc-{str(os.getpid())}")
     parser = get_config()
     args, unknow = parser.parse_known_args()
     for k, v in config.items():
