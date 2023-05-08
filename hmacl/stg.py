@@ -48,7 +48,7 @@ class STG:
         self.ms[task] = np.abs(metrics)
         self.ls[task] = np.abs(td_error)
 
-        if np.all(self.task_seen) or np.random.random() < self.task_seen.sum() / len(self.task_seen):
+        if np.all(self.task_seen) or np.random.random() < max(self.task_seen.sum() / len(self.task_seen), 0.5):
             wms = self.replay_weight(self.ms)
             wls = self.replay_weight(self.ls)
             task_weights = (1 - self.loss_coef) * wms + self.loss_coef * wls

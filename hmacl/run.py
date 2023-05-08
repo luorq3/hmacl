@@ -167,7 +167,7 @@ def search(config):
 
 
 if __name__ == "__main__":
-    _log = get_logger()
+    _log = get_logger("main")
     parser = get_config()
     args = parser.parse_args()
     config_dict = load_config_dict(args)
