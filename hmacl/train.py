@@ -7,7 +7,7 @@ from run import search
 
 _CPU_COUNT = min(multiprocessing.cpu_count() - 1, 8)
 
-num_seeds = 2
+num_seeds = 16
 num_parallel = min(num_seeds, _CPU_COUNT)
 
 name = "vdn"
@@ -33,7 +33,7 @@ config = {
     "use_rnn": True,
     # log and file path
     "wandb_job_type": "Training",
-    "use_wandb": False
+    "use_wandb": True
 }
 
 configs = []

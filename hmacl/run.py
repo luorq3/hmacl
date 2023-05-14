@@ -166,7 +166,7 @@ def search(config):
     args_sanity_check(config_dict, _log)
     all_args = NameSpace(**config_dict)
     all_args.device = "cuda" if all_args.use_cuda else "cpu"
-    print(all_args)
+    _log.console_logger.info(all_args)
     main(all_args, _log, tuning=True)
 
 
