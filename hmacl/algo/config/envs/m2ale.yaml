@@ -1,11 +1,11 @@
 env: "m2ale"
 
 env_args:
-  scenario: "5u_vs_5u"
+  scenario: "7u_vs_10u"
   time_limit: 200
   camp: "offensive"
   reward_type: "dense"
-  map_size: [8, 8]
+  map_size: [12, 12]
   tag_map_size: [50, 50]
   expand_d: 2
   pos_init_type: "random"

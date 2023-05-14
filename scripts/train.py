@@ -1,3 +1,6 @@
+import sys
+import os
+sys.path.append(os.path.join(os.path.dirname(os.path.dirname(__file__)), "hmacl"))
 import copy
 import datetime
 import multiprocessing
@@ -7,10 +10,10 @@ from hmacl.run import search
 
 _CPU_COUNT = min(multiprocessing.cpu_count() - 1, 8)
 
-num_seeds = 16
+num_seeds = 2
 num_parallel = min(num_seeds, _CPU_COUNT)
 
-name = "vdn_ns"
+name = "vdn"
 config = {
     # required
     "project": "exp-v6",
@@ -24,16 +27,16 @@ config = {
     "temperature": 0.1,
     # time
     "t_max": 4000000,
-    "t_update": 20000,
+    "t_update": 30000,
     # algo
-    "buffer_size": 5000,
+    "buffer_size": 2000,
     "lr": 0.0005,
     "hidden_dim": 128,
     "epsilon_anneal_time": 200000,
     "use_rnn": True,
     # log and file path
     "wandb_job_type": "Training",
-    "use_wandb": True
+    "use_wandb": False
 }
 
 configs = []
