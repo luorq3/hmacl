@@ -2,7 +2,7 @@ import copy
 import datetime
 import multiprocessing
 
-from hmacl.run import search
+from run import search
 
 
 _CPU_COUNT = min(multiprocessing.cpu_count() - 1, 8)
