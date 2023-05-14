@@ -2,30 +2,31 @@ import copy
 import datetime
 import multiprocessing
 
-from run import search
+from hmacl.run import search
 
 
 _CPU_COUNT = min(multiprocessing.cpu_count() - 1, 8)
 
-num_seeds = 20
+num_seeds = 16
 num_parallel = min(num_seeds, _CPU_COUNT)
 
+name = "vdn_ns"
 config = {
     # required
     "project": "exp-v6",
-    "name": "vdn",
+    "name": name,
     "env": "m2ale",
     # experiment name and dir
-    "exp": datetime.datetime.now().strftime('%m-%d_%H-%M-%S'),
+    "exp": name + "-" + datetime.datetime.now().strftime('%m-%d_%H-%M-%S'),
     "exp_exist_ok": True,
     # hmacl
     "loss_coef": 0.1,
     "temperature": 0.1,
     # time
     "t_max": 4000000,
-    "t_update": 30000,
+    "t_update": 20000,
     # algo
-    "buffer_size": 2000,
+    "buffer_size": 5000,
     "lr": 0.0005,
     "hidden_dim": 128,
     "epsilon_anneal_time": 200000,
