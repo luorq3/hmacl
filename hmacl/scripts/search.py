@@ -12,7 +12,7 @@ import click
 
 _CPU_COUNT = multiprocessing.cpu_count() - 1
 
-run_path = os.path.join(os.path.dirname(__file__), "run.py")
+run_path = os.path.join(os.path.dirname(__file__), "../run.py")
 
 
 def _flatten_lists(object):

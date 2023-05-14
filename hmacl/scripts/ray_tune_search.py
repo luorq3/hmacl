@@ -1,4 +1,4 @@
-from run import search
+from hmacl.run import search
 import ray
 from ray import tune
 from ray.tune.schedulers import PopulationBasedTraining
@@ -32,7 +32,7 @@ pbt_scheduler = PopulationBasedTraining(
 tuner = tune.Tuner(
     search,
     tune_config=tune.TuneConfig(
-        num_samples=50,
+        num_samples=5,
         scheduler=pbt_scheduler
     )
 )

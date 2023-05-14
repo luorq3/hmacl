@@ -7,13 +7,13 @@ from run import search
 
 _CPU_COUNT = multiprocessing.cpu_count() - 1
 
-cpus = _CPU_COUNT
-num_seeds = 5
+num_seeds = 15
+num_parallel = min(num_seeds, _CPU_COUNT)
 
 config = {
     # required
-    "project": "exp-v5",
-    "name": "vdn_ns",
+    "project": "exp-v6",
+    "name": "vdn",
     "env": "m2ale",
     # experiment name and dir
     "exp": datetime.datetime.now().strftime('%m-%d_%H-%M-%S'),
@@ -36,10 +36,18 @@ config = {
 }
 
 configs = []
-for i in range(1, 1 + num_seeds):
+for i in range(6, 1 + num_seeds):
     config_ = copy.deepcopy(config)
     config_["seed"] = i
     configs.append(config_)
-with multiprocessing.Pool(processes=cpus) as p:
-    p.map(search, configs)
+
+
+start = 0
+num_config = len(configs)
+num_iters = num_seeds // num_parallel if num_seeds % num_parallel == 0 else num_seeds // num_parallel + 1
+for iter in range(num_iters):
+    end = min(num_config, start + num_parallel)
+    with multiprocessing.Pool(processes=num_parallel) as p:
+        p.map(search, configs[start: end])
+    start = end
 
