@@ -6,6 +6,7 @@ from argparse import Namespace
 
 from hmacl.envs.m2ale.multiagentenv import MultiAgentEnv
 from hmacl.envs.m2ale.m2ale_core import M2ALECore
+from hmacl.envs.m2ale.agent.base import AGENTS_TYPES
 
 
 class M2ALE(MultiAgentEnv):
@@ -26,6 +27,19 @@ class M2ALE(MultiAgentEnv):
 
         self._env = M2ALECore(config)
         self._init()
+
+    def get_classes(self):
+        """
+        For class based parameter sharing of HMACL framework.
+        Get class of each agent, return as a unique number.
+        !!! This implementation just for all agents in one same camp,
+        if agents include both camp, need to differentiate which camp the agent belong.
+        """
+        agent_classes = []
+        for unique_id in self.agent_idx_dict.values():
+            agent = self._env.get_agent(unique_id)
+            agent_classes.append(AGENTS_TYPES[agent.agent_type])
+        return np.array(agent_classes, dtype=np.uint8)
 
     # get mapping from agent to type
     def get_agents_types(self):

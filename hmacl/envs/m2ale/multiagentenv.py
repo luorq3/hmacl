@@ -1,5 +1,9 @@
 class MultiAgentEnv(object):
 
+    def get_classes(self):
+        """For class based parameter sharing of HMACL framework."""
+        raise NotImplementedError
+
     def step(self, actions):
         """Returns reward, terminated, info."""
         raise NotImplementedError
