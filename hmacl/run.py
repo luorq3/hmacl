@@ -35,11 +35,6 @@ def main(all_args, _log, tuning=False):
     # parallel runner need to setting new seed for envs
     all_args.env_args["seed"] = all_args.seed
 
-    # if obs appending one hot agent id
-    if all_args.obs_agent_id:
-        all_args.env_args["obs_with_agent_id"] = True
-        all_args.obs_agent_id = False
-
     # result path and exp_name
     local_results_path = os.path.abspath(all_args.local_results_path)
     exp_prefix = 'exp' if all_args.exp is None else all_args.exp

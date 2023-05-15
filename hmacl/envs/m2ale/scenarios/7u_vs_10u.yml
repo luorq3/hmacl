@@ -15,10 +15,10 @@ unit:
     sight_range: 10
     dmg: 5
 
-map_size: [ 12, 12 ]
-pos_init_type: "random"
-reward_type: "dense"
-obs_with_agent_id: False
+#map_size: [ 12, 12 ]
+#pos_init_type: "random"
+#reward_type: "dense"
+#obs_with_agent_id: False
 offensive_agent:
   warship:
     - <<: *warship
