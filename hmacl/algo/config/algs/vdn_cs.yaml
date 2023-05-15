@@ -21,6 +21,7 @@ obs_individual_obs: False
 
 # use the Q_Learner to train
 mac: "class_shared_mac"
+cps: True  # class policy sharing
 agent: "rnn_ns"
 standardise_returns: False
 standardise_rewards: True
