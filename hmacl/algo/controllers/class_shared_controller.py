@@ -1,16 +1,34 @@
 import copy
 
-from hmacl.algo.modules.agents import REGISTRY as agent_REGISTRY
+from hmacl.algo.modules.agents import RNNCSAgent
 from hmacl.algo.components.action_selectors import REGISTRY as action_REGISTRY
 import torch as th
 
 class ClassSharedMAC:
     def __init__(self, scheme, groups, args):
-        assert args.cps, "Class policy sharing should toggle `cps` to True."
+        """
+        ap2cp: ['0' '0' '1' '1' '1' '3' '3']
+        cp2ap: {'0': [0, 1], '1': [2, 3, 4], '3': [5, 6]}
+        """
         self.n_agents = args.n_agents
+        # cpi
+        assert args.cps, "Class policy sharing should toggle `cps` to True."
+        assert args.agent == "rnn_cs"
+        self.ap2cp = args.ap2cp
+        self.cp2ap = {}
+        for i_agent, cls in enumerate(self.ap2cp):
+            if self.cp2ap.__contains__(cls):
+                self.cp2ap.get(cls).append(i_agent)
+            else:
+                self.cp2ap[cls] = [i_agent]
+        args.cp2ap = self.cp2ap
         self.args = args
-        input_shape = self._get_input_shape(scheme)
-        self._build_agents(input_shape)
+
+        input_shapes = {}
+        for k, v in self.cp2ap.items():
+            input_shapes[k] = self._get_input_shape(scheme, len(v))
+        self._build_agents(input_shapes)
+
         self.agent_output_type = args.agent_output_type
 
         self.action_selector = action_REGISTRY[args.action_selector](args)
@@ -41,7 +59,7 @@ class ClassSharedMAC:
         return agent_outs.view(ep_batch.batch_size, self.n_agents, -1)
 
     def init_hidden(self, batch_size):
-        self.hidden_states = self.agent.init_hidden().unsqueeze(0).expand(batch_size, -1, -1)  # bav
+        self.hidden_states = {k: v.unsqueeze(0).expand(batch_size, len(self.cp2ap[k]), -1) for k, v in self.agent.init_hidden().items()}
 
     def parameters(self):
         return self.agent.parameters()
@@ -65,30 +83,31 @@ class ClassSharedMAC:
             target_param.data.copy_(
                 target_param.data * (1.0 - tau) + param.data * tau)
 
-    def _build_agents(self, input_shape):
-        self.agent = agent_REGISTRY[self.args.agent](input_shape, self.args)
+    def _build_agents(self, input_shapes):
+        self.agent = RNNCSAgent(input_shapes, self.args)
 
     def _build_inputs(self, batch, t):
-        # Assumes homogenous agents with flat observations.
-        # Other MACs might want to e.g. delegate building inputs to each agent
         bs = batch.batch_size
-        inputs = []
-        inputs.append(batch["obs"][:, t])  # b1av
-        if self.args.obs_last_action:
-            if t == 0:
-                inputs.append(th.zeros_like(batch["actions_onehot"][:, t]))
-            else:
-                inputs.append(batch["actions_onehot"][:, t-1])
-        if self.args.obs_agent_id:
-            inputs.append(th.eye(self.n_agents, device=batch.device).unsqueeze(0).expand(bs, -1, -1))
+        inputs = {}
+        obs = batch["obs"][:, t]
+        for k in self.cp2ap.keys():
+            input_ = [obs[:, self.cp2ap[k]]]
+            if self.args.obs_last_action:
+                if t == 0:
+                    input_.append(th.zeros_like(batch["actions_onehot"][:, t, self.cp2ap[k]]))
+                else:
+                    input_.append(batch["actions_onehot"][:, t - 1, self.cp2ap[k]])
+            if self.args.obs_agent_id:
+                input_.append(th.eye(len(self.cp2ap[k]), device=batch.device).unsqueeze(0).expand(bs, -1, -1))
 
-        inputs = th.cat([x.reshape(bs*self.n_agents, -1) for x in inputs], dim=1)
+            input_ = th.cat([x.reshape(bs * len(self.cp2ap[k]), -1) for x in input_], dim=1)
+            inputs[k] = input_
         return inputs
 
-    def _get_input_shape(self, scheme):
+    def _get_input_shape(self, scheme, n_ca):
         input_shape = scheme["obs"]["vshape"]
         if self.args.obs_last_action:
             input_shape += scheme["actions_onehot"]["vshape"][0]
         if self.args.obs_agent_id:
-            input_shape += self.n_agents
+            input_shape += n_ca
         return input_shape
