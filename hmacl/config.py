@@ -35,6 +35,7 @@ def get_config():
     parser.add_argument("--save_model", default=False, type=lambda x: bool(strtobool(x)), help="")
     parser.add_argument("--runner", type=str, default='episode', help="")
     parser.add_argument("--buffer_size", type=int, default=5000, help="")
+    parser.add_argument("--batch_size", type=int, default=64, help="")
     parser.add_argument("--epsilon_anneal_time", type=int, default=100000, help="")
     parser.add_argument("--hidden_dim", type=int, default=128, help="")
     parser.add_argument("--lr", type=float, default=0.0003, help="")
