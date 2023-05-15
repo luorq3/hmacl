@@ -25,7 +25,7 @@ class RNNCSAgent(nn.Module):
             q, h = self.agents[k](input_, hidden_state)
             hiddens[k] = h.unsqueeze(0)
             qs.append(q.unsqueeze(0))
-        return th.cat(qs), hiddens
+        return th.cat(qs, dim=1), hiddens
 
     def cuda(self, device="cuda:0"):
         for _, a in self.agents.items():

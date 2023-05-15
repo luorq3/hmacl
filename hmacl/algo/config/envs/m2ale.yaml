@@ -1,7 +1,7 @@
 env: "m2ale"
 
 env_args:
-  scenario: "7u_vs_10u"
+  scenario: "5u_vs_5u"
   time_limit: 200
   camp: "offensive"
   reward_type: "dense"
