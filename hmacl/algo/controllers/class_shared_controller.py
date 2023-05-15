@@ -6,6 +6,7 @@ import torch as th
 
 class ClassSharedMAC:
     def __init__(self, scheme, groups, args):
+        assert args.cps, "Class policy sharing should toggle `cps` to True."
         self.n_agents = args.n_agents
         self.args = args
         input_shape = self._get_input_shape(scheme)
