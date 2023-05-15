@@ -56,6 +56,10 @@ def main(all_args, _log, tuning=False):
     all_args.n_actions = env_info["n_actions"]
     all_args.state_shape = env_info["state_shape"]
 
+    # cpi. mapping agents to class policies
+    if all_args.cps:
+        all_args.ap2cp = env_demo.get_classes()
+
     # Default/Base scheme
     scheme = {
         "state": {"vshape": env_info["state_shape"]},
