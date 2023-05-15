@@ -11,13 +11,15 @@ num_seeds = 16
 num_parallel = min(num_seeds, _CPU_COUNT)
 
 name = "vdn"
+scenario = "7u_vs_10u"
+v = "v1"
 config = {
     # required
     "project": "exp-v6",
     "name": name,
     "env": "m2ale",
     # experiment name and dir
-    "exp": name + "-" + datetime.datetime.now().strftime('%m-%d_%H-%M-%S'),
+    "exp": name + "-" + scenario + "-" + v,
     "exp_exist_ok": True,
     # hmacl
     "loss_coef": 0.1,
@@ -51,4 +53,3 @@ for iter in range(num_iters):
     with multiprocessing.Pool(processes=num_parallel) as p:
         p.map(search, configs[start: end])
     start = end
-
