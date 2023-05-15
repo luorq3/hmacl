@@ -13,13 +13,13 @@ def get_config():
     parser.add_argument("--seed", type=int, default=random.randint(1000, 99999), help="")
     parser.add_argument("--exp", type=str, default='exp', help="")
     parser.add_argument("--exp_exist_ok", default=False, type=lambda x: bool(strtobool(x)), help="")
+    parser.add_argument("--use_cuda", default=True, type=lambda x: bool(strtobool(x)), help="")
     # hmacl
     parser.add_argument("--improve_type", type=str, default="hard", help="")
     parser.add_argument("--metrics", type=str, default="win_rate", help="")
     parser.add_argument("--loss_coef", type=float, default=0.5, help="")
     parser.add_argument("--temperature", type=float, default=1, help="")
     parser.add_argument("--save_cpi_model", default=True, type=lambda x: bool(strtobool(x)), help="")
-    parser.add_argument("--cps", default=False, type=lambda x: bool(strtobool(x)), help="")
     # time
     parser.add_argument("--t_max", type=int, default=2040000, help="")
     parser.add_argument("--t_update", type=int, default=20000, help="")
