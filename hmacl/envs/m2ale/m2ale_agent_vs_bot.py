@@ -54,6 +54,7 @@ class M2ALE(MultiAgentEnv):
         return self._env.units_dict.get(unique_id)
 
     def _init(self):
+        self.map_size = self._env.map_size
         self._episode_steps = 0
 
         # self.agent_idx_dict = {agent_id: unique_id for agent_id, unique_id in enumerate(sorted(self._env.agents_unique_idx))}
