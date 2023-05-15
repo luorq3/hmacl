@@ -39,7 +39,7 @@ class M2ALE(MultiAgentEnv):
         for unique_id in self.agent_idx_dict.values():
             agent = self._env.get_agent(unique_id)
             agent_classes.append(AGENTS_TYPES[agent.agent_type])
-        return np.array(agent_classes, dtype=np.uint8)
+        return np.array(agent_classes, dtype=np.str)
 
     # get mapping from agent to type
     def get_agents_types(self):
