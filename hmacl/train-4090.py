@@ -10,8 +10,8 @@ _CPU_COUNT = min(multiprocessing.cpu_count() - 1, 8)
 num_seeds = 16
 num_parallel = min(num_seeds, _CPU_COUNT)
 
-name = "vdn_ns"
-scenario = "7u_vs_10u"
+name = "vdn_cs"
+scenario = "5u_vs_5u"
 v = "v1"
 config = {
     # required
@@ -28,10 +28,10 @@ config = {
     "t_max": 4000000,
     "t_update": 20000,
     # algo
-    "buffer_size": 5000,
+    "buffer_size": 4000,
     "lr": 0.0005,
     "hidden_dim": 128,
-    "epsilon_anneal_time": 200000,
+    "epsilon_anneal_time": 300000,
     "use_rnn": True,
     # log and file path
     "wandb_job_type": "Training",

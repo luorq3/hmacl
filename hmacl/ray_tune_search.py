@@ -20,7 +20,8 @@ search_space = {
     "t_max": [2040000],
     "wandb_job_type": ["tune-search"],
     "use_wandb": [True],
-    "use_rnn": [True]
+    "use_rnn": [True],
+    "use_cuda": [True]
 }
 
 # trainable_with_cpu_gpu = tune.with_resources(search, {"cpu": 20, "gpu": 1})
