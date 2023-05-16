@@ -1,4 +1,4 @@
-from hmacl.run import search
+from run import search
 import ray
 from ray import tune
 from ray.tune.schedulers import PopulationBasedTraining
