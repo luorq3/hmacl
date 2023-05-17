@@ -1,5 +1,6 @@
 import os
 import sys
+
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
 import datetime
@@ -7,6 +8,8 @@ import random
 import numpy as np
 from types import SimpleNamespace as NameSpace
 import torch as th
+from ray import air
+from ray.air import session
 from config import get_config
 from hmacl.algo.algo import Algo
 from hmacl.cpi import CPI
@@ -22,11 +25,23 @@ from hmacl.algo.learners import REGISTRY as le_REGISTRY
 from hmacl.algo.envs import REGISTRY as env_REGISTRY
 
 
+# ray tune
+def ray_report(runner, mac, learner, cpi, stg, metric, t_episode):
+    checkpoint_dict = {
+        "step": runner.t_env,
+        "episode": t_episode,
+        "model_state_dict": mac.agent.state_dict(),
+        "optimizer_state_dict": learner.optimiser.state_dict(),
+        "task_seen": stg.task_seen,
+        "max_task": stg.max_task
+    }
+    if learner.mixer is not None:
+        checkpoint_dict["mixer_state"] = learner.mixer.state_dict()
+    session.report({metric: cpi.cur_metrics}, checkpoint=air.Checkpoint.from_dict(checkpoint_dict))
+
+
 def main(all_args, _log, tuning=False):
     # start================================args and log========================================
-    # ray tune
-    if tuning:
-        from ray.air import session
 
     # seed
     random.seed(all_args.seed)
@@ -38,7 +53,8 @@ def main(all_args, _log, tuning=False):
     # result path and exp_name
     local_results_path = os.path.abspath(all_args.local_results_path)
     exp_prefix = 'exp' if all_args.exp is None else all_args.exp
-    all_args.local_results_path = increment_path(local_results_path, exp_prefix, exist_ok=all_args.exp_exist_ok, mkdir=True)
+    all_args.local_results_path = increment_path(local_results_path, exp_prefix, exist_ok=all_args.exp_exist_ok,
+                                                 mkdir=True)
     all_args.exp = os.path.basename(all_args.local_results_path)
 
     fmt_time = datetime.datetime.now().strftime('%m-%d_%H-%M')
@@ -104,6 +120,24 @@ def main(all_args, _log, tuning=False):
     stg = STG(all_args, _log)
     algo = Algo(all_args, _log, runner, mac, learner, buffer)
 
+    # start====================================ray tune========================================
+    step_to_load = 0
+    episode_to_load = 0
+    if session.get_checkpoint():
+        checkpoint_dict = session.get_checkpoint().to_dict()
+        mac.agent.load_state_dict(checkpoint_dict["model_state_dict"])
+        for param_group in learner.optimiser.param_groups:
+            param_group["lr"] = all_args.lr
+        learner.optimiser.load_state_dict(checkpoint_dict["optimizer_state_dict"])
+
+        if learner.mixer is not None:
+            learner.mixer.load_state_dict(checkpoint_dict["mixer_state"])
+        step_to_load = checkpoint_dict["step"]
+        episode_to_load = checkpoint_dict["episode"]
+        stg.task_seen = checkpoint_dict["task_seen"]
+        stg.max_task = checkpoint_dict["max_task"]
+    # end======================================ray tune========================================
+
     # initial env/target env
     task_id = 0
     env_config = stg.get_task_config(task_id)
@@ -113,6 +147,8 @@ def main(all_args, _log, tuning=False):
     runner.set_env(env, tag_env)
     runner.setup(scheme=scheme, groups=groups, preprocess=preprocess, mac=mac)
     cpi.update_stats(algo, learner, 0)
+    if tuning:
+        ray_report(runner, mac, learner, cpi, stg, all_args.metrics, 0)
     # end===================================HMACL components===================================
 
     # start====================================HMACL run=======================================
@@ -120,8 +156,9 @@ def main(all_args, _log, tuning=False):
     _log.log_stat(_log_prefix + 'task', task_id, runner.t_env)
     _log.log_stat(_log_prefix + 'map_size_X', env_config['map_size'][0], runner.t_env)
 
+    runner.t_env = step_to_load
     n_hmacl_episode = all_args.t_max // all_args.t_update
-    hmacl_episode = 0
+    hmacl_episode = episode_to_load
 
     _log.console_logger.info(f"Hmacl episode starting, generated task: {task_id}.")
     while hmacl_episode < n_hmacl_episode:
@@ -130,7 +167,7 @@ def main(all_args, _log, tuning=False):
 
         cpi.improve(algo, learner, runner.t_env)
         if tuning:
-            session.report({all_args.metrics: cpi.cur_metrics})
+            ray_report(runner, mac, learner, cpi, stg, all_args.metrics, hmacl_episode)
         task_id = stg.generate(task_id, cpi.cur_metrics, td_error)
         env_config = stg.get_task_config(task_id)
         env.update(env_config)
@@ -149,7 +186,7 @@ def main(all_args, _log, tuning=False):
     _log.log_stat(_log_prefix + 'td_error', td_error, runner.t_env)
     cpi.improve(algo, learner, runner.t_env)
     if tuning:
-        session.report({all_args.metrics: cpi.cur_metrics})
+        ray_report(runner, mac, learner, cpi, stg, all_args.metrics, hmacl_episode)
     cpi.save_model(learner, "latest")
     _log.console_logger.info(f"Hmacl turning ended, td_error: {td_error}.")
     # Train on target_task--------------------------------------------------------------------------
@@ -173,7 +210,7 @@ def search(config):
     all_args = NameSpace(**config_dict)
     all_args.device = "cuda" if all_args.use_cuda else "cpu"
     _log.console_logger.info(all_args)
-    main(all_args, _log, tuning=True)
+    main(all_args, _log, tuning=config["tuning"])
 
 
 if __name__ == "__main__":
