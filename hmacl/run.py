@@ -142,12 +142,17 @@ def main(all_args, _log, tuning=False):
         hmacl_episode += 1
 
     _log.console_logger.info(f"Hmacl episode ended, count for hmacl_episode: {hmacl_episode}.")
-    # Train on target_task
+    # Train on target_task--------------------------------------------------------------------------
     env.update(tag_env_config)
     _log.console_logger.info(f"Hmacl turning started, tag_task: {tag_env_config['map_size']}.")
     td_error = algo.run()
+    _log.log_stat(_log_prefix + 'td_error', td_error, runner.t_env)
+    cpi.improve(algo, learner, runner.t_env)
+    if tuning:
+        session.report({all_args.metrics: cpi.cur_metrics})
     cpi.save_model(learner, "latest")
     _log.console_logger.info(f"Hmacl turning ended, td_error: {td_error}.")
+    # Train on target_task--------------------------------------------------------------------------
 
     runner.close_env()
     _log.console_logger.info("Finished Training")
