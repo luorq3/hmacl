@@ -115,6 +115,7 @@ def main(all_args, _log, tuning=False):
     cpi.update_stats(algo, learner, 0)
     # end===================================HMACL components===================================
 
+    # start====================================HMACL run=======================================
     _log_prefix = "hmacl_"
     _log.log_stat(_log_prefix + 'task', task_id, runner.t_env)
     _log.log_stat(_log_prefix + 'map_size_X', env_config['map_size'][0], runner.t_env)
@@ -150,6 +151,7 @@ def main(all_args, _log, tuning=False):
 
     runner.close_env()
     _log.console_logger.info("Finished Training")
+    # end=====================================HMACL run========================================
 
 
 def search(config):
