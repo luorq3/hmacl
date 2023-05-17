@@ -81,10 +81,30 @@ class STG:
 
 # if __name__ == "__main__":
 #     np.random.seed(0)
-#     stg = STG("m2ale", "test", initial_len=5, tag_len=29, expand_d=5, temperature=1, loss_coef=0.5)
+#     from types import SimpleNamespace as SN
+#     from utils.logging_ import get_logger
+#     env_d = {
+#         "scenario": "5u_vs_5u",
+#         "time_limit": 200,
+#         "camp": "offensive",
+#         "reward_type": "dense",
+#         "map_size": [12, 12],
+#         "tag_map_size": [50, 50],
+#         "expand_d": 2,
+#         "pos_init_type": "random",
+#         "obs_with_agent_id": False
+#     }
+#     d = {
+#         "env": "m2ale",
+#         "loss_coef": 0.1,
+#         "temperature": 0.1,
+#         "env_args": env_d
+#     }
+#     args = SN(**d)
+#     stg = STG(args, get_logger("test"))
 #     task = 0
 #     ts = []
-#     for _ in range(10):
+#     for _ in range(100):
 #         ts.append(task)
-#         stg.generate(task, np.random.random(), np.random.random())
+#         task = stg.generate(task, np.random.random(), np.random.random())
 #     print(ts)
