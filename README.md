@@ -24,6 +24,8 @@ Current validation evidence and remaining experiment gaps are tracked in
   `FC-256/GRU-256/FC-128`);
 - DyNA-style shared observation encoding and masked team aggregation for QMIX
   and MAPPO;
+- paper comparison strategies (LI, DR, Minimax, and direct target training)
+  plus TV/SR/no-replay dispatcher ablations;
 - deterministic unit tests and a runnable end-to-end smoke path.
 
 Football curricula scale both teams from 3 agents to a configurable target.
@@ -83,6 +85,8 @@ root. Pursuit uses:
 ```bash
 scripts/run_matdd_pursuit.sh qmix 60-20
 scripts/run_matdd_pursuit_smoke.sh
+scripts/run_matdd_baseline.sh li qmix pursuit60-20 tv_sr
+scripts/run_matdd_baseline_smoke.sh
 ```
 
 ## Reproducibility note

@@ -56,6 +56,8 @@ class MATDDConfig:
     final_target_steps: int
     evaluation_episodes: int = 32
     teacher_update_interval: int = 8
+    teacher_objective: str = "regret"
+    replay_enabled: bool = True
     seed: Optional[int] = None
 
     def __post_init__(self):
@@ -65,6 +67,8 @@ class MATDDConfig:
             raise ValueError("training step budgets are invalid")
         if self.evaluation_episodes <= 0 or self.teacher_update_interval <= 0:
             raise ValueError("evaluation and teacher intervals must be positive")
+        if self.teacher_objective not in {"regret", "minimax", "none"}:
+            raise ValueError("teacher_objective must be regret, minimax, or none")
 
 
 @dataclass(frozen=True)
@@ -73,8 +77,9 @@ class IterationResult:
     source: str
     task: Task
     protagonist_return: float
-    antagonist_return: float
-    parallel_team_regret: float
+    antagonist_return: Optional[float]
+    parallel_team_regret: Optional[float]
+    teacher_reward: float
     target_return: float
     training_value: float
     environment_steps: int
@@ -94,15 +99,16 @@ class MATDDRunResult:
 class MATDDTrainingLoop:
     """Train protagonist and antagonist on designed or replayed tasks.
 
-    The antagonist and protagonist receive the same task and interaction
-    budget.  The designer reward is ``antagonist return - protagonist return``.
+    With the MATDD regret objective, antagonist and protagonist receive the
+    same task and interaction budget. Minimax uses the negative protagonist
+    return, while rule-based baselines do not train a teacher or antagonist.
     Evaluation steps are included in total environment-step accounting.
     """
 
     def __init__(
         self,
         protagonist: StudentBackend,
-        antagonist: StudentBackend,
+        antagonist: Optional[StudentBackend],
         designer: CurriculumDesigner,
         dispatcher: CurriculumDispatcher,
         initial_task: Mapping[str, Number],
@@ -117,6 +123,8 @@ class MATDDTrainingLoop:
         self.target_task = dict(target_task)
         self.config = config
         self._rng = random.Random(config.seed)
+        if self.config.teacher_objective == "regret" and antagonist is None:
+            raise ValueError("the regret objective requires an antagonist")
 
     def run(self) -> MATDDRunResult:
         history: List[IterationResult] = []
@@ -129,7 +137,8 @@ class MATDDTrainingLoop:
         for iteration in range(self.config.curriculum_iterations):
             context = self._context(iteration, current_task, target_return.mean_return)
             replay = (
-                len(self.dispatcher) > 0
+                self.config.replay_enabled
+                and len(self.dispatcher) > 0
                 and self._rng.random() < self.dispatcher.fill_ratio
             )
             action = None
@@ -144,17 +153,22 @@ class MATDDTrainingLoop:
             protagonist_result = self.protagonist.train(
                 task, self.config.steps_per_curriculum
             )
-            antagonist_result = self.antagonist.train(
-                task, self.config.steps_per_curriculum
-            )
+            antagonist_result = None
+            if self.config.teacher_objective == "regret":
+                antagonist_result = self.antagonist.train(
+                    task, self.config.steps_per_curriculum
+                )
             target_evaluation = self.protagonist.evaluate(
                 self.target_task, self.config.evaluation_episodes
             )
-            regret = antagonist_result.mean_return - protagonist_result.mean_return
+            regret = None
+            if antagonist_result is not None:
+                regret = antagonist_result.mean_return - protagonist_result.mean_return
+            teacher_reward = self._teacher_reward(protagonist_result, regret)
             self.dispatcher.observe(task, protagonist_result.mean_abs_td_error)
             teacher_metrics: Dict[str, float] = {}
             if action is not None:
-                self.designer.observe(action, regret, done=False)
+                self.designer.observe(action, teacher_reward, done=False)
 
             next_context = self._context(
                 iteration + 1, task, target_evaluation.mean_return
@@ -164,9 +178,10 @@ class MATDDTrainingLoop:
 
             iteration_steps = (
                 protagonist_result.environment_steps
-                + antagonist_result.environment_steps
                 + target_evaluation.environment_steps
             )
+            if antagonist_result is not None:
+                iteration_steps += antagonist_result.environment_steps
             total_environment_steps += iteration_steps
             history.append(
                 IterationResult(
@@ -174,13 +189,22 @@ class MATDDTrainingLoop:
                     source=source,
                     task=dict(task),
                     protagonist_return=protagonist_result.mean_return,
-                    antagonist_return=antagonist_result.mean_return,
+                    antagonist_return=(
+                        antagonist_result.mean_return
+                        if antagonist_result is not None
+                        else None
+                    ),
                     parallel_team_regret=regret,
+                    teacher_reward=teacher_reward,
                     target_return=target_evaluation.mean_return,
                     training_value=protagonist_result.mean_abs_td_error,
                     environment_steps=iteration_steps,
                     protagonist_metrics=dict(protagonist_result.metrics),
-                    antagonist_metrics=dict(antagonist_result.metrics),
+                    antagonist_metrics=(
+                        dict(antagonist_result.metrics)
+                        if antagonist_result is not None
+                        else {}
+                    ),
                     target_metrics=dict(target_evaluation.metrics),
                     teacher_metrics=teacher_metrics,
                 )
@@ -207,6 +231,19 @@ class MATDDTrainingLoop:
             final_training=final_training,
             total_environment_steps=total_environment_steps,
         )
+
+    def _teacher_reward(
+        self,
+        protagonist_result: TrainingResult,
+        regret: Optional[float],
+    ) -> float:
+        if self.config.teacher_objective == "regret":
+            if regret is None:
+                raise RuntimeError("parallel-team regret is unavailable")
+            return regret
+        if self.config.teacher_objective == "minimax":
+            return -protagonist_result.mean_return
+        return 0.0
 
     def _context(
         self, iteration: int, current_task: Mapping[str, Number], target_return: float

@@ -43,9 +43,19 @@ and places the recovered algorithm under `hmacl/matdd/`.
     conditions its monotonic mixer on a masked mean of shared observation
     embeddings; `dyna_cv_critic` combines each agent's embedding with the
     masked mean embedding of its teammates.
+11. The comparison strategies share the same student backend and task space.
+    LI interpolates all normalized parameters linearly, DR samples each
+    parameter uniformly, Minimax trains the PPO teacher with negative
+    protagonist return, and Direct always trains on the target. Only MATDD's
+    parallel-team-regret objective trains an antagonist. The dispatcher is
+    enabled for LI, DR, Minimax, and MATDD in full comparison runs.
+12. Dispatcher ablations map directly to the paper: `tv_sr` uses configurable
+    `rho` (0.5 by default), `tv` forces `rho=0`, `sr` forces `rho=1`, and
+    `none` disables replay while continuing to design curricula.
 
-The run entry point saves protagonist, antagonist, and PPO teacher checkpoints
-alongside `matdd_result.json` so the recovered training state is inspectable.
+The run entry point saves every trained component alongside `matdd_result.json`.
+MATDD stores protagonist, antagonist, and PPO teacher checkpoints; Minimax
+omits the antagonist, and rule-based strategies omit the teacher checkpoint.
 
 ## Known gaps
 
@@ -69,3 +79,6 @@ alongside `matdd_result.json` so the recovered training state is inspectable.
 - The legacy environments and action selectors use process-global random
   generators. Runs are deterministic for a fixed command and seed, but fully
   isolated per-role RNG streams require a later environment refactor.
+- The precise historical LI step schedule and Minimax teacher observation were
+  not retained. Linear interpolation over curriculum progress and the same PPO
+  observation used by MATDD are explicit, controlled recovery choices.

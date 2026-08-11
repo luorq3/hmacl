@@ -78,6 +78,84 @@ class RandomCurriculumDesigner:
         del path
 
 
+class LinearCurriculumDesigner:
+    """Linearly interpolate every free parameter from the initial task."""
+
+    def __init__(
+        self,
+        space: TaskParameterSpace,
+        initial_task: Mapping[str, Number],
+        target_task: Mapping[str, Number],
+    ):
+        self.space = space
+        self.initial_task = dict(initial_task)
+        self.target_task = dict(target_task)
+        self._initial_vector = space.normalize(initial_task)
+        self._target_vector = space.normalize(target_task)
+
+    @property
+    def pending_transitions(self) -> int:
+        return 0
+
+    def propose(self, context: DesignerContext) -> DesignerAction:
+        progress = min(1.0, max(0.0, float(context.progress)))
+        normalized = tuple(
+            initial + progress * (target - initial)
+            for initial, target in zip(self._initial_vector, self._target_vector)
+        )
+        task = self.space.clip_to_target(
+            self.space.denormalize(normalized), self.target_task
+        )
+        return DesignerAction(task=task, normalized_task=self.space.normalize(task))
+
+    def observe(
+        self, action: DesignerAction, reward: float, done: bool = False
+    ) -> None:
+        del action, reward, done
+
+    def update(self, last_context: Optional[DesignerContext] = None):
+        del last_context
+        return {}
+
+    def save(self, path: str) -> None:
+        del path
+
+
+class TargetTaskDesigner:
+    """Always emit the target task for the non-curriculum baseline."""
+
+    def __init__(
+        self,
+        space: TaskParameterSpace,
+        target_task: Mapping[str, Number],
+    ):
+        self.space = space
+        self.target_task = dict(target_task)
+
+    @property
+    def pending_transitions(self) -> int:
+        return 0
+
+    def propose(self, context: DesignerContext) -> DesignerAction:
+        del context
+        return DesignerAction(
+            task=dict(self.target_task),
+            normalized_task=self.space.normalize(self.target_task),
+        )
+
+    def observe(
+        self, action: DesignerAction, reward: float, done: bool = False
+    ) -> None:
+        del action, reward, done
+
+    def update(self, last_context: Optional[DesignerContext] = None):
+        del last_context
+        return {}
+
+    def save(self, path: str) -> None:
+        del path
+
+
 class PPOCurriculumDesigner:
     """A bounded Beta-policy PPO teacher.
 

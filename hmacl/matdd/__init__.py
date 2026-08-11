@@ -8,8 +8,10 @@ implement :class:`hmacl.matdd.loop.StudentBackend`.
 from .designer import (
     DesignerAction,
     DesignerContext,
+    LinearCurriculumDesigner,
     PPOCurriculumDesigner,
     RandomCurriculumDesigner,
+    TargetTaskDesigner,
 )
 from .dispatcher import CurriculumDispatcher, CurriculumRecord
 from .loop import (
@@ -29,6 +31,7 @@ __all__ = [
     "DesignerContext",
     "EvaluationResult",
     "IterationResult",
+    "LinearCurriculumDesigner",
     "MATDDConfig",
     "MATDDRunResult",
     "MATDDTrainingLoop",
@@ -36,5 +39,6 @@ __all__ = [
     "PPOCurriculumDesigner",
     "RandomCurriculumDesigner",
     "TaskParameterSpace",
+    "TargetTaskDesigner",
     "TrainingResult",
 ]

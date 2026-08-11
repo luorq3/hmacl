@@ -44,8 +44,10 @@ else:
     VMASFootballEnv = None
 from hmacl.matdd.designer import (
     DesignerContext,
+    LinearCurriculumDesigner,
     PPOCurriculumDesigner,
     RandomCurriculumDesigner,
+    TargetTaskDesigner,
 )
 from hmacl.matdd.dispatcher import CurriculumDispatcher
 from hmacl.matdd.loop import (
@@ -94,6 +96,46 @@ class TaskParameterSpaceTest(unittest.TestCase):
         self.assertAlmostEqual(
             space.distance({"size": 10, "agents": 5}, {"size": 50, "agents": 25}),
             2**0.5,
+        )
+
+
+class RuleBasedDesignerTest(unittest.TestCase):
+    def setUp(self):
+        self.space = TaskParameterSpace(
+            [
+                ParameterSpec("size", 10, 50, integer=True),
+                ParameterSpec("agents", 5, 25, integer=True),
+            ]
+        )
+
+    def context(self, progress):
+        return DesignerContext(
+            current_task={"size": 10, "agents": 5},
+            target_task={"size": 50, "agents": 25},
+            progress=progress,
+            target_return=0.0,
+            pool_fill_ratio=0.0,
+        )
+
+    def test_linear_interpolates_all_task_parameters(self):
+        designer = LinearCurriculumDesigner(
+            self.space,
+            {"size": 10, "agents": 5},
+            {"size": 50, "agents": 25},
+        )
+        self.assertEqual(
+            designer.propose(self.context(0.5)).task,
+            {"size": 30, "agents": 15},
+        )
+
+    def test_target_designer_emits_noncurriculum_task(self):
+        designer = TargetTaskDesigner(
+            self.space,
+            {"size": 50, "agents": 25},
+        )
+        self.assertEqual(
+            designer.propose(self.context(0.0)).task,
+            {"size": 50, "agents": 25},
         )
 
 
@@ -261,6 +303,25 @@ class DispatcherTest(unittest.TestCase):
         dispatcher.observe({"size": 6}, 4.0)
         self.assertEqual([record.task["size"] for record in dispatcher.records], [4, 6])
 
+    def test_pure_value_and_scale_distributions_prioritize_opposite_tasks(self):
+        value_dispatcher = CurriculumDispatcher(
+            self.space, {"size": 10}, capacity=2, rho=0.0, seed=1
+        )
+        scale_dispatcher = CurriculumDispatcher(
+            self.space, {"size": 10}, capacity=2, rho=1.0, seed=1
+        )
+        for dispatcher in (value_dispatcher, scale_dispatcher):
+            dispatcher.observe({"size": 2}, training_value=10.0)
+            dispatcher.observe({"size": 9}, training_value=1.0)
+        self.assertGreater(
+            value_dispatcher.probabilities()[0],
+            value_dispatcher.probabilities()[1],
+        )
+        self.assertLess(
+            scale_dispatcher.probabilities()[0],
+            scale_dispatcher.probabilities()[1],
+        )
+
 
 class MATDDTrainingLoopTest(unittest.TestCase):
     def test_loop_accounts_for_both_students_and_evaluation(self):
@@ -298,6 +359,79 @@ class MATDDTrainingLoopTest(unittest.TestCase):
         self.assertEqual(result.total_environment_steps, expected_steps)
         self.assertEqual(len(dispatcher), 2)
         self.assertEqual(result.iterations[-1].target_metrics["win_rate"], 1.0)
+
+    def test_minimax_uses_negative_student_return_without_antagonist(self):
+        class RecordingDesigner:
+            def __init__(self):
+                self.rewards = []
+
+            @property
+            def pending_transitions(self):
+                return 0
+
+            def propose(self, context):
+                del context
+                from hmacl.matdd.designer import DesignerAction
+
+                return DesignerAction({"size": 4}, (1 / 3,))
+
+            def observe(self, action, reward, done=False):
+                del action, done
+                self.rewards.append(reward)
+
+            def update(self, last_context=None):
+                del last_context
+                return {}
+
+        space = TaskParameterSpace([ParameterSpec("size", 1, 10, integer=True)])
+        designer = RecordingDesigner()
+        dispatcher = CurriculumDispatcher(space, {"size": 10}, capacity=2, seed=5)
+        result = MATDDTrainingLoop(
+            protagonist=FakeStudent(),
+            antagonist=None,
+            designer=designer,
+            dispatcher=dispatcher,
+            initial_task={"size": 1},
+            target_task={"size": 10},
+            config=MATDDConfig(
+                curriculum_iterations=1,
+                steps_per_curriculum=20,
+                final_target_steps=0,
+                evaluation_episodes=4,
+                teacher_objective="minimax",
+                seed=6,
+            ),
+        ).run()
+        self.assertEqual(designer.rewards, [-4.0])
+        self.assertIsNone(result.iterations[0].antagonist_return)
+        self.assertIsNone(result.iterations[0].parallel_team_regret)
+        self.assertEqual(result.iterations[0].teacher_reward, -4.0)
+        self.assertEqual(result.total_environment_steps, 4 + 20 + 4)
+
+    def test_no_replay_keeps_using_the_designer(self):
+        space = TaskParameterSpace([ParameterSpec("size", 1, 10, integer=True)])
+        dispatcher = CurriculumDispatcher(space, {"size": 10}, capacity=1, seed=5)
+        result = MATDDTrainingLoop(
+            protagonist=FakeStudent(),
+            antagonist=None,
+            designer=RandomCurriculumDesigner(space, {"size": 10}, seed=4),
+            dispatcher=dispatcher,
+            initial_task={"size": 1},
+            target_task={"size": 10},
+            config=MATDDConfig(
+                curriculum_iterations=3,
+                steps_per_curriculum=10,
+                final_target_steps=0,
+                evaluation_episodes=2,
+                teacher_objective="none",
+                replay_enabled=False,
+                seed=6,
+            ),
+        ).run()
+        self.assertEqual(
+            [item.source for item in result.iterations],
+            ["designer", "designer", "designer"],
+        )
 
 
 @unittest.skipUnless(ML_DEPENDENCIES_AVAILABLE, "ML dependencies are not installed")

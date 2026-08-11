@@ -14,7 +14,12 @@ from hmacl.config import get_config
 from hmacl.matdd.adapters.football import FootballTaskAdapter
 from hmacl.matdd.adapters.m2ale import M2ALETaskAdapter
 from hmacl.matdd.adapters.pursuit import PursuitTaskAdapter
-from hmacl.matdd.designer import PPOCurriculumDesigner, RandomCurriculumDesigner
+from hmacl.matdd.designer import (
+    LinearCurriculumDesigner,
+    PPOCurriculumDesigner,
+    RandomCurriculumDesigner,
+    TargetTaskDesigner,
+)
 from hmacl.matdd.dispatcher import CurriculumDispatcher
 from hmacl.matdd.hmacl_backend import build_hmacl_backend
 from hmacl.matdd.loop import MATDDConfig, MATDDTrainingLoop
@@ -33,7 +38,17 @@ def get_parser():
         t_update=50000,
         use_wandb=False,
     )
-    parser.add_argument("--designer", choices=("ppo", "random"), default="ppo")
+    parser.add_argument(
+        "--designer",
+        choices=("matdd", "li", "dr", "minimax", "direct", "ppo", "random"),
+        default="matdd",
+        help="curriculum strategy; ppo/random are legacy aliases",
+    )
+    parser.add_argument(
+        "--dispatcher_mode",
+        choices=("tv_sr", "tv", "sr", "none"),
+        default="tv_sr",
+    )
     parser.add_argument("--batch_size_run", type=int, default=1)
     parser.add_argument("--target_agents", type=int, default=None)
     parser.add_argument("--target_map_size", type=int, default=None)
@@ -79,6 +94,15 @@ def main():
     config_dict = load_config_dict(cli_args)
     args_sanity_check(config_dict, logger)
     args = SimpleNamespace(**config_dict)
+    args.curriculum_strategy = _canonical_strategy(args.designer)
+    args.teacher_objective = _teacher_objective(args.curriculum_strategy)
+    if args.curriculum_strategy == "direct":
+        args.dispatcher_mode = "none"
+    args.replay_enabled = args.dispatcher_mode != "none"
+    if args.dispatcher_mode == "tv":
+        args.dispatcher_rho = 0.0
+    elif args.dispatcher_mode == "sr":
+        args.dispatcher_rho = 1.0
     if args.student_architecture != "legacy":
         if args.env == "vmas":
             args.agent = "matdd_rnn"
@@ -105,9 +129,11 @@ def main():
     protagonist = build_hmacl_backend(
         args, logger, adapter, "protagonist", seed_offset=0
     )
-    antagonist = build_hmacl_backend(
-        args, logger, adapter, "antagonist", seed_offset=10000
-    )
+    antagonist = None
+    if args.teacher_objective == "regret":
+        antagonist = build_hmacl_backend(
+            args, logger, adapter, "antagonist", seed_offset=10000
+        )
     dispatcher = CurriculumDispatcher(
         adapter.space,
         adapter.target_task,
@@ -130,6 +156,8 @@ def main():
             final_target_steps=args.final_target_steps,
             evaluation_episodes=args.eval_nepisode,
             teacher_update_interval=args.teacher_update_interval,
+            teacher_objective=args.teacher_objective,
+            replay_enabled=args.replay_enabled,
             seed=args.seed,
         ),
     )
@@ -137,22 +165,33 @@ def main():
         result = loop.run()
         _save_result(args, result, dispatcher)
         protagonist.save(os.path.join(args.local_results_path, "models", "protagonist"))
-        antagonist.save(os.path.join(args.local_results_path, "models", "antagonist"))
+        if antagonist is not None:
+            antagonist.save(
+                os.path.join(args.local_results_path, "models", "antagonist")
+            )
         designer.save(os.path.join(args.local_results_path, "models", "teacher.th"))
         logger.console_logger.info(
-            "MATDD finished with %s total environment steps",
+            "%s curriculum run finished with %s total environment steps",
+            args.curriculum_strategy.upper(),
             result.total_environment_steps,
         )
     finally:
         protagonist.close()
-        antagonist.close()
+        if antagonist is not None:
+            antagonist.close()
 
 
 def _build_designer(args, adapter):
-    if args.designer == "random":
+    if args.curriculum_strategy == "dr":
         return RandomCurriculumDesigner(
             adapter.space, adapter.target_task, seed=args.seed
         )
+    if args.curriculum_strategy == "li":
+        return LinearCurriculumDesigner(
+            adapter.space, adapter.initial_task, adapter.target_task
+        )
+    if args.curriculum_strategy == "direct":
+        return TargetTaskDesigner(adapter.space, adapter.target_task)
     return PPOCurriculumDesigner(
         adapter.space,
         adapter.target_task,
@@ -166,6 +205,18 @@ def _build_designer(args, adapter):
         device=args.device,
         seed=args.seed,
     )
+
+
+def _canonical_strategy(designer):
+    return {"ppo": "matdd", "random": "dr"}.get(designer, designer)
+
+
+def _teacher_objective(strategy):
+    if strategy == "matdd":
+        return "regret"
+    if strategy == "minimax":
+        return "minimax"
+    return "none"
 
 
 def _build_adapter(args):
