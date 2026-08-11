@@ -1,8 +1,11 @@
-REGISTRY = {}
-
+from .matdd_rnn_agent import MATDDRNNAgent
 from .rnn_agent import RNNAgent
-from .rnn_ns_agent import RNNNSAgent
 from .rnn_cs_agent import RNNCSAgent
-REGISTRY["rnn"] = RNNAgent
-REGISTRY["rnn_ns"] = RNNNSAgent
-REGISTRY["rnn_cs"] = RNNCSAgent
+from .rnn_ns_agent import RNNNSAgent
+
+REGISTRY = {
+    "matdd_rnn": MATDDRNNAgent,
+    "rnn": RNNAgent,
+    "rnn_cs": RNNCSAgent,
+    "rnn_ns": RNNNSAgent,
+}

@@ -1,0 +1,39 @@
+env: "vmas"
+
+env_args:
+  scenario: "football"
+  device: "cpu"
+  continuous_actions: false
+  wrapper: null
+  max_steps: 256
+  seed: 123
+  grad_enabled: false
+  ai_red_agents: true
+  ai_blue_agents: false
+  n_blue_agents: 3
+  n_red_agents: 3
+  viewer_size: [1200, 800]
+  agent_size: 0.025
+  goal_size: 0.35
+  goal_depth: 0.1
+  pitch_length: 3.0
+  pitch_width: 1.5
+  max_speed: 0.15
+  u_multiplier: 0.1
+  ball_max_speed: 0.3
+  ball_mass: 0.1
+  ball_size: 0.02
+  n_traj_points: 0
+  dense_reward: true
+  target_n_agents: 18
+  scale_red_team: true
+
+test_greedy: true
+test_nepisode: 32
+eval_nepisode: 32
+test_interval: 50000
+eval_interval: 50000
+log_interval: 10000
+runner_log_interval: 10000
+learner_log_interval: 10000
+t_max: 2050000

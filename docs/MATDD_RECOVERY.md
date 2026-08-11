@@ -25,6 +25,13 @@ and places the recovered algorithm under `hmacl/matdd/`.
    protagonist, antagonist, and evaluation interactions are counted. HMACL's
    conservative rollback is deliberately excluded; it should be a separate
    ablation rather than an undocumented part of MATDD.
+7. Football uses one integer free parameter. It controls the blue learners and
+   scales the heuristic red team symmetrically. VMAS worlds are rebuilt between
+   curricula, while observations, state, actions, and agent slots remain fixed
+   at the configured 18-agent or 25-agent target interface.
+8. Football students default to the manuscript's `FC(256) -> GRU(256) ->
+   FC(128) -> output` policy network. `--student_architecture legacy` retains
+   the original single-width HMACL agent for controlled comparisons.
 
 The run entry point saves protagonist, antagonist, and PPO teacher checkpoints
 alongside `matdd_result.json` so the recovered training state is inspectable.
@@ -34,14 +41,18 @@ alongside `matdd_result.json` so the recovered training state is inspectable.
 - The manuscript did not define the teacher observation, replay eviction, or
   PPO rollout/update schedule. The choices above are explicit recovery
   decisions and must be reported as such.
-- `M2ALETaskAdapter` varies only map size. Variable agent counts require a new
-  Pursuit/VMAS task adapter. `PaddedMultiAgentEnv` already fixes learner input,
-  state, agent, and action dimensions to those of the target task, while an
-  active-agent mask excludes padded agents from Q-learning and actor-critic
-  losses.
-- The HMACL production bridge is implemented for single-process episode
-  runners. Pursuit/VMAS environment adapters and parallel-runner curriculum
-  updates are still required before the original paper experiments can run.
+- `M2ALETaskAdapter` remains a map-size integration environment. VMAS Football
+  now supports variable agent counts, target-shaped padding, active-agent loss
+  masks, dynamic parallel-worker updates, return/win-rate metrics, and both
+  paper target sizes.
+- SISL/PettingZoo Pursuit has not been restored. Its grid-size and pursuer-count
+  task space, image observations, and convolutional encoder remain necessary
+  for the Pursuit-60-20 and Pursuit-80-30 experiments.
+- The manuscript describes DyNA aggregation for changing team sizes. The
+  recovered implementation currently uses target-shaped zero padding plus
+  active-agent masks, which is testable but is not an implementation of DyNA.
+- The exact historical VMAS release is unknown. Recovery targets VMAS 1.5.x;
+  its Boolean `dense_reward` option replaces the removed `dense_reward_ratio`.
 - The legacy environments and action selectors use process-global random
   generators. Runs are deterministic for a fixed command and seed, but fully
   isolated per-role RNG streams require a later environment refactor.

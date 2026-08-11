@@ -78,6 +78,9 @@ class IterationResult:
     target_return: float
     training_value: float
     environment_steps: int
+    protagonist_metrics: Mapping[str, float] = field(default_factory=dict)
+    antagonist_metrics: Mapping[str, float] = field(default_factory=dict)
+    target_metrics: Mapping[str, float] = field(default_factory=dict)
     teacher_metrics: Mapping[str, float] = field(default_factory=dict)
 
 
@@ -176,6 +179,9 @@ class MATDDTrainingLoop:
                     target_return=target_evaluation.mean_return,
                     training_value=protagonist_result.mean_abs_td_error,
                     environment_steps=iteration_steps,
+                    protagonist_metrics=dict(protagonist_result.metrics),
+                    antagonist_metrics=dict(antagonist_result.metrics),
+                    target_metrics=dict(target_evaluation.metrics),
                     teacher_metrics=teacher_metrics,
                 )
             )

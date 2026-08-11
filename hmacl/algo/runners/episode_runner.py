@@ -1,12 +1,12 @@
 from copy import deepcopy
-
 from functools import partial
-from hmacl.algo.components.episode_buffer import EpisodeBatch
+
 import numpy as np
+
+from hmacl.algo.components.episode_buffer import EpisodeBatch
 
 
 class EpisodeRunner:
-
     def __init__(self, args, logger):
         self.args = args
         self.logger = logger
@@ -24,6 +24,10 @@ class EpisodeRunner:
         self.test_stats = {}
         self.tag_stats = {}
         self.last_episode_return = None
+        self.last_episode_returns = []
+        self.last_episode_lengths = []
+        self.last_episode_infos = []
+        self.last_run_environment_steps = 0
 
         # Log the first run
         self.log_train_stats_t = -1000000
@@ -35,8 +39,15 @@ class EpisodeRunner:
             self.tag_env = tag_env
 
     def setup(self, scheme, groups, preprocess, mac):
-        self.new_batch = partial(EpisodeBatch, scheme, groups, self.batch_size, self.episode_limit + 1,
-                                 preprocess=preprocess, device=self.args.device)
+        self.new_batch = partial(
+            EpisodeBatch,
+            scheme,
+            groups,
+            self.batch_size,
+            self.episode_limit + 1,
+            preprocess=preprocess,
+            device=self.args.device,
+        )
         self.mac = mac
         self.has_agent_mask = "agent_mask" in scheme
 
@@ -48,6 +59,9 @@ class EpisodeRunner:
 
     def close_env(self):
         self.env.close()
+
+    def update_env(self, config):
+        self.env.update(config)
 
     def reset(self, env):
         self.batch = self.new_batch()
@@ -68,11 +82,10 @@ class EpisodeRunner:
         self.mac.init_hidden(batch_size=self.batch_size)
 
         while not terminated:
-
             pre_transition_data = {
                 "state": [env.get_state()],
                 "avail_actions": [env.get_avail_actions()],
-                "obs": [env.get_obs()]
+                "obs": [env.get_obs()],
             }
             if self.has_agent_mask:
                 pre_transition_data["agent_mask"] = [env.get_agent_mask()]
@@ -81,7 +94,9 @@ class EpisodeRunner:
 
             # Pass the entire batch of experiences up till now to the agents
             # Receive the actions for each agent at this timestep in a batch of size 1
-            actions = self.mac.select_actions(self.batch, t_ep=self.t, t_env=self.t_env, test_mode=test_mode)
+            actions = self.mac.select_actions(
+                self.batch, t_ep=self.t, t_env=self.t_env, test_mode=test_mode
+            )
 
             reward, terminated, env_info = env.step(actions[0])
             if test_mode and self.args.render:
@@ -101,7 +116,7 @@ class EpisodeRunner:
         last_data = {
             "state": [env.get_state()],
             "avail_actions": [env.get_avail_actions()],
-            "obs": [env.get_obs()]
+            "obs": [env.get_obs()],
         }
         if self.has_agent_mask:
             last_data["agent_mask"] = [env.get_agent_mask()]
@@ -110,7 +125,9 @@ class EpisodeRunner:
         self.batch.update(last_data, ts=self.t)
 
         # Select actions in the last stored state
-        actions = self.mac.select_actions(self.batch, t_ep=self.t, t_env=self.t_env, test_mode=test_mode)
+        actions = self.mac.select_actions(
+            self.batch, t_ep=self.t, t_env=self.t_env, test_mode=test_mode
+        )
         self.batch.update({"actions": actions}, ts=self.t)
 
         if test_mode:
@@ -122,7 +139,12 @@ class EpisodeRunner:
             cur_returns = self.train_returns
             log_prefix = ""
 
-        cur_stats.update({k: cur_stats.get(k, 0) + env_info.get(k, 0) for k in set(cur_stats) | set(env_info)})
+        cur_stats.update(
+            {
+                k: cur_stats.get(k, 0) + env_info.get(k, 0)
+                for k in set(cur_stats) | set(env_info)
+            }
+        )
         cur_stats["n_episodes"] = 1 + cur_stats.get("n_episodes", 0)
         cur_stats["ep_length"] = self.t + cur_stats.get("ep_length", 0)
 
@@ -131,19 +153,25 @@ class EpisodeRunner:
 
         cur_returns.append(episode_return)
         self.last_episode_return = episode_return
+        self.last_episode_returns = [float(episode_return)]
+        self.last_episode_lengths = [self.t]
+        self.last_episode_infos = [deepcopy(env_info)]
+        self.last_run_environment_steps = self.t
 
         if test_mode:
             if test_tag and len(self.tag_returns) == self.args.eval_nepisode:
                 if tag_eval_stats is not None:
-                    tag_eval_stats['returns'] = deepcopy(cur_returns)
-                    tag_eval_stats['stats'] = deepcopy(cur_stats)
+                    tag_eval_stats["returns"] = deepcopy(cur_returns)
+                    tag_eval_stats["stats"] = deepcopy(cur_stats)
                 self._log(cur_returns, cur_stats, log_prefix)
             elif len(self.test_returns) == self.args.test_nepisode:
                 self._log(cur_returns, cur_stats, log_prefix)
         elif self.t_env - self.log_train_stats_t >= self.args.runner_log_interval:
             self._log(cur_returns, cur_stats, log_prefix)
             if hasattr(self.mac.action_selector, "epsilon"):
-                self.logger.log_stat("epsilon", self.mac.action_selector.epsilon, self.t_env)
+                self.logger.log_stat(
+                    "epsilon", self.mac.action_selector.epsilon, self.t_env
+                )
             self.log_train_stats_t = self.t_env
 
         return self.batch
@@ -155,5 +183,7 @@ class EpisodeRunner:
 
         for k, v in stats.items():
             if k != "n_episodes":
-                self.logger.log_stat(prefix + k + "_mean", v/stats["n_episodes"], self.t_env)
+                self.logger.log_stat(
+                    prefix + k + "_mean", v / stats["n_episodes"], self.t_env
+                )
         stats.clear()

@@ -1,6 +1,7 @@
 """Environment-specific MATDD adapters."""
 
+from .football import FootballTaskAdapter
 from .m2ale import M2ALETaskAdapter
 from .padded_env import PaddedMultiAgentEnv
 
-__all__ = ["M2ALETaskAdapter", "PaddedMultiAgentEnv"]
+__all__ = ["FootballTaskAdapter", "M2ALETaskAdapter", "PaddedMultiAgentEnv"]

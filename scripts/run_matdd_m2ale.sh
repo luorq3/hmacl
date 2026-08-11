@@ -3,7 +3,16 @@ set -euo pipefail
 
 algorithm="${1:-qmix}"
 case "${algorithm}" in
-  qmix|ippo|mappo) ;;
+  qmix)
+    runner="episode"
+    batch_size_run=1
+    batch_size=64
+    ;;
+  ippo|mappo)
+    runner="parallel"
+    batch_size_run=10
+    batch_size=10
+    ;;
   *)
     echo "Usage: $0 [qmix|ippo|mappo]" >&2
     exit 2
@@ -14,6 +23,9 @@ for seed in 1 2 3 4 5; do
   python -m hmacl.matdd_run \
     --name "${algorithm}" \
     --env m2ale \
+    --runner "${runner}" \
+    --batch_size_run "${batch_size_run}" \
+    --batch_size "${batch_size}" \
     --designer ppo \
     --seed "${seed}" \
     --curriculum_iterations 80 \

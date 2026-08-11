@@ -8,10 +8,23 @@ except ImportError:
 else:
     ML_DEPENDENCIES_AVAILABLE = True
 
+try:
+    import vmas  # noqa: F401
+except ImportError:
+    VMAS_AVAILABLE = False
+else:
+    VMAS_AVAILABLE = True
+
 if ML_DEPENDENCIES_AVAILABLE:
+    from hmacl.algo.envs.vmas import VMASFootballEnv
+    from hmacl.algo.modules.agents.matdd_rnn_agent import MATDDRNNAgent
+    from hmacl.matdd.adapters.football import FootballTaskAdapter
     from hmacl.matdd.adapters.padded_env import PaddedMultiAgentEnv
 else:
+    FootballTaskAdapter = None
+    MATDDRNNAgent = None
     PaddedMultiAgentEnv = None
+    VMASFootballEnv = None
 from hmacl.matdd.designer import (
     DesignerContext,
     PPOCurriculumDesigner,
@@ -45,6 +58,7 @@ class FakeStudent:
         return EvaluationResult(
             mean_return=float(task["size"]),
             environment_steps=episodes,
+            metrics={"win_rate": float(task["size"]) / 10.0},
         )
 
 
@@ -64,6 +78,45 @@ class TaskParameterSpaceTest(unittest.TestCase):
             space.distance({"size": 10, "agents": 5}, {"size": 50, "agents": 25}),
             2**0.5,
         )
+
+
+@unittest.skipUnless(ML_DEPENDENCIES_AVAILABLE, "NumPy is not installed")
+class FootballTaskAdapterTest(unittest.TestCase):
+    def test_scales_both_teams_and_removes_adapter_only_keys(self):
+        adapter = FootballTaskAdapter(
+            {
+                "scenario": "football",
+                "n_blue_agents": 3,
+                "n_red_agents": 3,
+                "target_n_agents": 8,
+                "scale_red_team": True,
+            }
+        )
+        config = adapter.env_config({"n_agents": 5})
+        self.assertEqual(config["n_blue_agents"], 5)
+        self.assertEqual(config["n_red_agents"], 5)
+        self.assertNotIn("target_n_agents", config)
+        self.assertNotIn("scale_red_team", config)
+
+
+@unittest.skipUnless(ML_DEPENDENCIES_AVAILABLE, "PyTorch is not installed")
+class MATDDRNNAgentTest(unittest.TestCase):
+    def test_matches_paper_layer_dimensions(self):
+        from types import SimpleNamespace
+
+        agent = MATDDRNNAgent(
+            20,
+            SimpleNamespace(
+                n_actions=9,
+                matdd_encoder_dim=256,
+                matdd_recurrent_dim=256,
+                matdd_projection_dim=128,
+            ),
+        )
+        output, hidden = agent(torch.zeros(6, 20), agent.init_hidden().repeat(6, 1))
+        self.assertEqual(output.shape, (6, 9))
+        self.assertEqual(hidden.shape, (6, 256))
+        self.assertEqual(agent.fc2.out_features, 128)
 
 
 class DispatcherTest(unittest.TestCase):
@@ -128,6 +181,7 @@ class MATDDTrainingLoopTest(unittest.TestCase):
         expected_steps = 4 + 3 * (20 + 20 + 4) + 30
         self.assertEqual(result.total_environment_steps, expected_steps)
         self.assertEqual(len(dispatcher), 2)
+        self.assertEqual(result.iterations[-1].target_metrics["win_rate"], 1.0)
 
 
 @unittest.skipUnless(ML_DEPENDENCIES_AVAILABLE, "ML dependencies are not installed")
@@ -233,6 +287,44 @@ class PaddedMultiAgentEnvTest(unittest.TestCase):
         self.assertEqual(env.get_agent_mask().tolist(), [[1.0], [1.0], [0.0], [0.0]])
         env.step([0, 1, 2, 3])
         self.assertEqual(raw_env.last_actions, [0, 1])
+
+
+@unittest.skipUnless(
+    ML_DEPENDENCIES_AVAILABLE and VMAS_AVAILABLE,
+    "VMAS dependencies are not installed",
+)
+class VMASFootballEnvTest(unittest.TestCase):
+    def test_discrete_environment_rebuilds_for_curriculum(self):
+        base_config = {
+            "scenario": "football",
+            "device": "cpu",
+            "continuous_actions": False,
+            "max_steps": 2,
+            "seed": 9,
+            "ai_red_agents": True,
+            "ai_blue_agents": False,
+            "n_blue_agents": 2,
+            "n_red_agents": 2,
+            "n_traj_points": 0,
+            "dense_reward": True,
+        }
+        env = VMASFootballEnv(**base_config)
+        try:
+            env.reset()
+            self.assertEqual(env.get_obs().shape[0], 2)
+            _, terminated, _ = env.step([0, 0])
+            self.assertFalse(terminated)
+            _, terminated, info = env.step([0, 0])
+            self.assertTrue(terminated)
+            self.assertTrue(info["episode_limit"])
+
+            updated_config = dict(base_config, n_blue_agents=3, n_red_agents=3)
+            env.update(updated_config)
+            env.reset()
+            self.assertEqual(env.n_agents, 3)
+            self.assertEqual(env.get_obs().shape[0], 3)
+        finally:
+            env.close()
 
 
 if __name__ == "__main__":

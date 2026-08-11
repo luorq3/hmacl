@@ -1,4 +1,4 @@
-"""Run the recovered MATDD algorithm on the legacy M2ALE environment."""
+"""Run the recovered MATDD algorithm on a supported HMACL environment."""
 
 import datetime
 import json
@@ -11,6 +11,7 @@ import numpy as np
 import torch
 
 from hmacl.config import get_config
+from hmacl.matdd.adapters.football import FootballTaskAdapter
 from hmacl.matdd.adapters.m2ale import M2ALETaskAdapter
 from hmacl.matdd.designer import PPOCurriculumDesigner, RandomCurriculumDesigner
 from hmacl.matdd.dispatcher import CurriculumDispatcher
@@ -32,6 +33,19 @@ def get_parser():
         use_wandb=False,
     )
     parser.add_argument("--designer", choices=("ppo", "random"), default="ppo")
+    parser.add_argument("--batch_size_run", type=int, default=1)
+    parser.add_argument("--target_agents", type=int, default=None)
+    parser.add_argument("--episode_limit", type=int, default=None)
+    parser.add_argument(
+        "--student_architecture",
+        choices=("auto", "paper", "legacy"),
+        default="auto",
+    )
+    parser.add_argument("--matdd_encoder_dim", type=int, default=256)
+    parser.add_argument("--matdd_recurrent_dim", type=int, default=256)
+    parser.add_argument("--matdd_projection_dim", type=int, default=128)
+    parser.add_argument("--student_gamma", type=float, default=None)
+    parser.add_argument("--student_grad_norm_clip", type=float, default=None)
     parser.add_argument("--curriculum_iterations", type=int, default=80)
     parser.add_argument("--steps_per_curriculum", type=int, default=50000)
     parser.add_argument("--final_target_steps", type=int, default=50000)
@@ -57,17 +71,21 @@ def main():
     config_dict = load_config_dict(cli_args)
     args_sanity_check(config_dict, logger)
     args = SimpleNamespace(**config_dict)
+    if args.student_architecture == "paper" or (
+        args.student_architecture == "auto" and args.env == "vmas"
+    ):
+        args.agent = "matdd_rnn"
+    if args.student_gamma is not None:
+        args.gamma = args.student_gamma
+    if args.student_grad_norm_clip is not None:
+        args.grad_norm_clip = args.student_grad_norm_clip
     args.device = "cuda" if args.use_cuda else "cpu"
     _seed_everything(args.seed)
     _prepare_run_directory(args)
     if args.use_wandb:
         logger.setup_wandb(args)
 
-    if args.env != "m2ale":
-        raise ValueError(
-            "the first recovered MATDD entry point supports env='m2ale' only"
-        )
-    adapter = M2ALETaskAdapter(args.env_args)
+    adapter = _build_adapter(args)
     protagonist = build_hmacl_backend(
         args, logger, adapter, "protagonist", seed_offset=0
     )
@@ -132,6 +150,24 @@ def _build_designer(args, adapter):
         device=args.device,
         seed=args.seed,
     )
+
+
+def _build_adapter(args):
+    if args.env == "m2ale":
+        config = dict(args.env_args)
+        if args.episode_limit is not None:
+            config["time_limit"] = args.episode_limit
+        args.env_args = config
+        return M2ALETaskAdapter(config)
+    if args.env == "vmas":
+        config = dict(args.env_args)
+        if args.target_agents is not None:
+            config["target_n_agents"] = args.target_agents
+        if args.episode_limit is not None:
+            config["max_steps"] = args.episode_limit
+        args.env_args = config
+        return FootballTaskAdapter(config)
+    raise ValueError("MATDD supports env='m2ale' or env='vmas'")
 
 
 def _prepare_run_directory(args):

@@ -5,6 +5,8 @@ implementation of **Multi-agent Automatic Task Design and Dispatch (MATDD)**.
 The original MATDD experiment source was lost; the recovery follows the ECAI
 manuscript and records every underspecified design choice in
 [`docs/MATDD_RECOVERY.md`](docs/MATDD_RECOVERY.md).
+Current validation evidence and remaining experiment gaps are tracked in
+[`docs/EXPERIMENT_STATUS.md`](docs/EXPERIMENT_STATUS.md).
 
 ## What is implemented
 
@@ -14,11 +16,15 @@ manuscript and records every underspecified design choice in
 - historical curriculum replay ranked by TD error and target proximity;
 - a framework-independent training state machine with total interaction
   accounting;
-- an HMACL/M2ALE backend for map-size curricula;
+- HMACL episode and multi-process parallel backends with dynamic task updates;
+- M2ALE map-size and VMAS Football variable-agent task adapters;
+- target-shaped zero padding and active-agent loss masks;
+- the paper's Football student network (`FC-256/GRU-256/FC-128`);
 - deterministic unit tests and a runnable end-to-end smoke path.
 
-The M2ALE adapter varies map size only. It does **not** yet reproduce the
-paper's variable-agent Pursuit and Football experiments.
+Football curricula scale both teams from 3 agents to a configurable target.
+The paper's 18-agent and 25-agent target interfaces are supported. Pursuit and
+the paper's DyNA architecture have not yet been reconstructed.
 
 ## Setup
 
@@ -50,9 +56,24 @@ python -m hmacl.matdd_run \
   --use_cuda false --use_wandb false --exp matdd-smoke
 ```
 
+Run Football with a small target and parallel IPPO workers:
+
+```bash
+python -m hmacl.matdd_run \
+  --name ippo --env vmas --runner parallel \
+  --batch_size_run 2 --batch_size 2 --target_agents 5 \
+  --episode_limit 16 --designer random \
+  --curriculum_iterations 1 --steps_per_curriculum 1 \
+  --final_target_steps 1 --curriculum_eval_episodes 2 \
+  --eval_nepisode 2 --use_cuda false --use_wandb false \
+  --exp matdd-football-smoke
+```
+
 Results, dispatcher state, step accounting, and model checkpoints are written
-under `runs/<experiment>/`. For a five-seed configuration, run
-`scripts/run_matdd_m2ale.sh [qmix|ippo|mappo]` from the repository root.
+under `runs/<experiment>/`. For five-seed configurations, run
+`scripts/run_matdd_m2ale.sh [qmix|ippo|mappo]` or
+`scripts/run_matdd_football.sh [qmix|ippo|mappo] [18|25]` from the repository
+root.
 
 ## Reproducibility note
 

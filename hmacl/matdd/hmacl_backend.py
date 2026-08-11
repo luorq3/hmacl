@@ -15,7 +15,6 @@ from hmacl.algo.envs import REGISTRY as env_REGISTRY
 from hmacl.algo.learners import REGISTRY as learner_REGISTRY
 from hmacl.algo.runners import REGISTRY as runner_REGISTRY
 
-from .adapters.m2ale import M2ALETaskAdapter
 from .adapters.padded_env import PaddedMultiAgentEnv
 from .loop import EvaluationResult, TrainingResult
 from .task_space import Number
@@ -40,15 +39,9 @@ class RoleLogger:
 
 
 class HMACLStudentBackend:
-    """Run one independently initialized HMACL learner for MATDD.
+    """Run one independently initialized HMACL learner for MATDD."""
 
-    The current bridge intentionally supports ``EpisodeRunner`` only. Dynamic
-    curriculum updates are not implemented by the legacy parallel workers.
-    """
-
-    def __init__(self, algo, adapter, current_evaluation_episodes=5):
-        if algo.runner.__class__.__name__ != "EpisodeRunner":
-            raise ValueError("MATDD HMACL backend currently requires runner='episode'")
+    def __init__(self, algo, adapter, current_evaluation_episodes=5, seed=0):
         if current_evaluation_episodes <= 0:
             raise ValueError("current_evaluation_episodes must be positive")
         self.algo = algo
@@ -56,16 +49,17 @@ class HMACLStudentBackend:
         self.learner = algo.learner
         self.adapter = adapter
         self.current_evaluation_episodes = current_evaluation_episodes
+        self.current_task = dict(adapter.initial_task)
+        self.seed = int(seed)
+        self.task_updates = 0
 
     def train(self, task: Mapping[str, Number], step_budget: int) -> TrainingResult:
-        self.runner.env.update(self.adapter.env_config(task))
+        self._set_task(task)
         self.algo.args.t_update = step_budget
         before = self.runner.t_env
         td_error = float(self.algo.run())
         training_steps = self.runner.t_env - before
-        current_evaluation = self._evaluate(
-            test_target=False, episodes=self.current_evaluation_episodes
-        )
+        current_evaluation = self._evaluate(episodes=self.current_evaluation_episodes)
         return TrainingResult(
             mean_return=current_evaluation.mean_return,
             mean_abs_td_error=td_error,
@@ -80,7 +74,12 @@ class HMACLStudentBackend:
             raise ValueError(
                 "HMACL target evaluation only supports the configured target task"
             )
-        return self._evaluate(test_target=True, episodes=episodes)
+        previous_task = dict(self.current_task)
+        self._set_task(task)
+        try:
+            return self._evaluate(episodes=episodes)
+        finally:
+            self._set_task(previous_task)
 
     def save(self, path):
         os.makedirs(path, exist_ok=True)
@@ -88,36 +87,50 @@ class HMACLStudentBackend:
 
     def close(self):
         self.runner.close_env()
-        tag_env = getattr(self.runner, "tag_env", None)
-        if tag_env is not None and tag_env is not self.runner.env:
-            tag_env.close()
 
-    def _evaluate(self, test_target, episodes):
+    def _set_task(self, task):
+        config = self.adapter.env_config(task)
+        self.task_updates += 1
+        config["seed"] = self.seed + self.task_updates * self.runner.batch_size
+        self.runner.update_env(config)
+        self.current_task = dict(task)
+
+    def _evaluate(self, episodes):
         returns = []
+        infos = []
         environment_steps = 0
-        for _ in range(episodes):
-            self.runner.run(test_mode=True, test_tag=test_target)
-            returns.append(float(self.runner.last_episode_return))
-            environment_steps += self.runner.t
+        runs = (episodes + self.runner.batch_size - 1) // self.runner.batch_size
+        for _ in range(runs):
+            self.runner.run(test_mode=True)
+            returns.extend(self.runner.last_episode_returns)
+            infos.extend(self.runner.last_episode_infos)
+            environment_steps += self.runner.last_run_environment_steps
         mean_return = sum(returns) / len(returns)
+        metrics = _mean_numeric_metrics(infos)
+        metrics.update(
+            {
+                "return_std": _standard_deviation(returns),
+                "evaluation_episodes": len(returns),
+            }
+        )
         return EvaluationResult(
             mean_return=mean_return,
             environment_steps=environment_steps,
-            metrics={"return_std": _standard_deviation(returns)},
+            metrics=metrics,
         )
 
 
-def build_hmacl_backend(
-    all_args, logger, adapter: M2ALETaskAdapter, role, seed_offset=0
-):
+def build_hmacl_backend(all_args, logger, adapter, role, seed_offset=0):
     """Construct an independent learner, environment, buffer, and runner."""
 
     args = deepcopy(all_args)
     args.seed += seed_offset
     args.env_args = deepcopy(args.env_args)
     args.env_args["seed"] = args.seed
-    args.runner = "episode"
-    args.batch_size_run = 1
+    if args.runner not in {"episode", "parallel"}:
+        raise ValueError("MATDD HMACL backend supports episode or parallel runners")
+    if args.runner == "episode":
+        args.batch_size_run = 1
     args.enable_periodic_test = False
     args.enable_periodic_target_eval = False
     args.checkpoint_path = ""
@@ -131,13 +144,19 @@ def build_hmacl_backend(
     target_config["seed"] = args.seed + 1
     raw_target_env = env_REGISTRY[args.env](**target_config)
     env_info = raw_target_env.get_env_info()
-    env = PaddedMultiAgentEnv(env_REGISTRY[args.env](**initial_config), env_info)
-    target_env = PaddedMultiAgentEnv(raw_target_env, env_info)
     args.n_agents = env_info["n_agents"]
     args.n_actions = env_info["n_actions"]
     args.state_shape = env_info["state_shape"]
     if getattr(args, "cps", False):
-        args.ap2cp = env.get_classes()
+        args.ap2cp = raw_target_env.get_classes()
+    raw_target_env.close()
+
+    env = None
+    if args.runner == "episode":
+        env = PaddedMultiAgentEnv(env_REGISTRY[args.env](**initial_config), env_info)
+    else:
+        args.env_args = initial_config
+        args.matdd_target_env_info = deepcopy(env_info)
 
     torch = _torch()
     scheme = {
@@ -165,7 +184,8 @@ def build_hmacl_backend(
     )
     mac = mac_REGISTRY[args.mac](buffer.scheme, groups, args)
     runner = runner_REGISTRY[args.runner](args=args, logger=role_logger)
-    runner.set_env(env, target_env)
+    if env is not None:
+        runner.set_env(env)
     runner.setup(scheme=scheme, groups=groups, preprocess=preprocess, mac=mac)
     learner = learner_REGISTRY[args.learner](mac, buffer.scheme, role_logger, args)
     if args.use_cuda:
@@ -175,6 +195,7 @@ def build_hmacl_backend(
         algo,
         adapter,
         current_evaluation_episodes=getattr(args, "curriculum_eval_episodes", 5),
+        seed=args.seed,
     )
 
 
@@ -183,6 +204,22 @@ def _standard_deviation(values):
         return 0.0
     mean = sum(values) / len(values)
     return (sum((value - mean) ** 2 for value in values) / len(values)) ** 0.5
+
+
+def _mean_numeric_metrics(infos):
+    values = {}
+    for info in infos:
+        for key, value in info.items():
+            if key == "episode_limit" or not isinstance(
+                value, (bool, int, float, np.number)
+            ):
+                continue
+            values.setdefault(key, []).append(float(value))
+    return {
+        key: sum(metric_values) / len(metric_values)
+        for key, metric_values in values.items()
+        if metric_values
+    }
 
 
 def _torch():
