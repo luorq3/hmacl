@@ -1,10 +1,13 @@
 import copy
-from hmacl.algo.components.episode_buffer import EpisodeBatch
-from hmacl.algo.modules.mixers.vdn import VDNMixer
-from hmacl.algo.modules.mixers.qmix import QMixer
+
 import torch as th
 from torch.optim import Adam
+
+from hmacl.algo.components.episode_buffer import EpisodeBatch
 from hmacl.algo.components.standarize_stream import RunningMeanStd
+from hmacl.algo.modules.mixers.dyna_qmix import DynaQMixer
+from hmacl.algo.modules.mixers.qmix import QMixer
+from hmacl.algo.modules.mixers.vdn import VDNMixer
 
 
 class QLearner:
@@ -22,6 +25,8 @@ class QLearner:
                 self.mixer = VDNMixer()
             elif args.mixer == "qmix":
                 self.mixer = QMixer(args)
+            elif args.mixer == "dyna_qmix":
+                self.mixer = DynaQMixer(args)
             else:
                 raise ValueError("Mixer {} not recognised.".format(args.mixer))
             self.params += list(self.mixer.parameters())
@@ -29,7 +34,7 @@ class QLearner:
 
         self.optimiser = Adam(params=self.params, lr=args.lr)
 
-        # a little wasteful to deepcopy (e.g. duplicates action selector), but should work for any MAC
+        # This duplicates the action selector but supports every MAC implementation.
         self.target_mac = copy.deepcopy(mac)
 
         self.training_steps = 0
@@ -68,7 +73,9 @@ class QLearner:
             mac_out.append(agent_outs)
         mac_out = th.stack(mac_out, dim=1)  # Concat over time
         # Pick the Q-Values for the actions taken by each agent
-        chosen_action_qvals = th.gather(mac_out[:, :-1], dim=3, index=actions).squeeze(3)  # Remove the last dim
+        chosen_action_qvals = th.gather(mac_out[:, :-1], dim=3, index=actions).squeeze(
+            3
+        )  # Remove the last dim
 
         # Calculate the Q-Values necessary for the target
         target_mac_out = []
@@ -98,21 +105,43 @@ class QLearner:
             if agent_mask is not None:
                 chosen_action_qvals = chosen_action_qvals * agent_mask
                 target_max_qvals = target_max_qvals * next_agent_mask
-            chosen_action_qvals = self.mixer(chosen_action_qvals, batch["state"][:, :-1])
-            target_max_qvals = self.target_mixer(target_max_qvals, batch["state"][:, 1:])
+            if getattr(self.mixer, "uses_observations", False):
+                chosen_action_qvals = self.mixer(
+                    chosen_action_qvals,
+                    batch["state"][:, :-1],
+                    observations=batch["obs"][:, :-1],
+                    agent_mask=agent_mask,
+                )
+                target_max_qvals = self.target_mixer(
+                    target_max_qvals,
+                    batch["state"][:, 1:],
+                    observations=batch["obs"][:, 1:],
+                    agent_mask=next_agent_mask,
+                )
+            else:
+                chosen_action_qvals = self.mixer(
+                    chosen_action_qvals, batch["state"][:, :-1]
+                )
+                target_max_qvals = self.target_mixer(
+                    target_max_qvals, batch["state"][:, 1:]
+                )
 
         if self.args.standardise_returns:
-            target_max_qvals = target_max_qvals * th.sqrt(self.ret_ms.var) + self.ret_ms.mean
+            target_max_qvals = (
+                target_max_qvals * th.sqrt(self.ret_ms.var) + self.ret_ms.mean
+            )
 
         # Calculate 1-step Q-Learning targets
-        targets = rewards + self.args.gamma * (1 - terminated) * target_max_qvals.detach()
+        targets = (
+            rewards + self.args.gamma * (1 - terminated) * target_max_qvals.detach()
+        )
 
         if self.args.standardise_returns:
             self.ret_ms.update(targets)
             targets = (targets - self.ret_ms.mean) / th.sqrt(self.ret_ms.var)
 
         # Td-error
-        td_error = (chosen_action_qvals - targets.detach())
+        td_error = chosen_action_qvals - targets.detach()
 
         mask = mask.expand_as(td_error)
         if agent_mask is not None and self.mixer is None:
@@ -122,7 +151,7 @@ class QLearner:
         masked_td_error = td_error * mask
 
         # Normal L2 loss, take mean over actual data
-        loss = (masked_td_error ** 2).sum() / mask.sum()
+        loss = (masked_td_error**2).sum() / mask.sum()
 
         # Optimise
         self.optimiser.zero_grad()
@@ -131,7 +160,12 @@ class QLearner:
         self.optimiser.step()
 
         self.training_steps += 1
-        if self.args.target_update_interval_or_tau > 1 and (self.training_steps - self.last_target_update_step) / self.args.target_update_interval_or_tau >= 1.0:
+        if (
+            self.args.target_update_interval_or_tau > 1
+            and (self.training_steps - self.last_target_update_step)
+            / self.args.target_update_interval_or_tau
+            >= 1.0
+        ):
             self._update_targets_hard()
             self.last_target_update_step = self.training_steps
         elif self.args.target_update_interval_or_tau <= 1.0:
@@ -141,11 +175,22 @@ class QLearner:
             self.logger.log_stat("loss", loss.item(), t_env)
             self.logger.log_stat("grad_norm", grad_norm.item(), t_env)
             mask_elems = mask.sum().item()
-            self.logger.log_stat("td_error_abs", (masked_td_error.abs().sum().item()/mask_elems), t_env)
-            self.logger.log_stat("q_taken_mean", (chosen_action_qvals * mask).sum().item()/(mask_elems * self.args.n_agents), t_env)
-            self.logger.log_stat("target_mean", (targets * mask).sum().item()/(mask_elems * self.args.n_agents), t_env)
+            self.logger.log_stat(
+                "td_error_abs", (masked_td_error.abs().sum().item() / mask_elems), t_env
+            )
+            self.logger.log_stat(
+                "q_taken_mean",
+                (chosen_action_qvals * mask).sum().item()
+                / (mask_elems * self.args.n_agents),
+                t_env,
+            )
+            self.logger.log_stat(
+                "target_mean",
+                (targets * mask).sum().item() / (mask_elems * self.args.n_agents),
+                t_env,
+            )
             self.log_stats_t = t_env
-        return masked_td_error.abs().sum().item()/mask.sum().item()
+        return masked_td_error.abs().sum().item() / mask.sum().item()
 
     def _update_targets_hard(self):
         self.target_mac.load_state(self.mac)
@@ -153,11 +198,17 @@ class QLearner:
             self.target_mixer.load_state_dict(self.mixer.state_dict())
 
     def _update_targets_soft(self, tau):
-        for target_param, param in zip(self.target_mac.parameters(), self.mac.parameters()):
+        for target_param, param in zip(
+            self.target_mac.parameters(), self.mac.parameters()
+        ):
             target_param.data.copy_(target_param.data * (1.0 - tau) + param.data * tau)
         if self.mixer is not None:
-            for target_param, param in zip(self.target_mixer.parameters(), self.mixer.parameters()):
-                target_param.data.copy_(target_param.data * (1.0 - tau) + param.data * tau)
+            for target_param, param in zip(
+                self.target_mixer.parameters(), self.mixer.parameters()
+            ):
+                target_param.data.copy_(
+                    target_param.data * (1.0 - tau) + param.data * tau
+                )
 
     def cuda(self):
         self.mac.cuda()
@@ -177,8 +228,15 @@ class QLearner:
         # Not quite right but I don't want to save target networks
         self.target_mac.load_models(path)
         if self.mixer is not None:
-            self.mixer.load_state_dict(th.load("{}/mixer.th".format(path), map_location=lambda storage, loc: storage))
-        self.optimiser.load_state_dict(th.load("{}/opt.th".format(path), map_location=lambda storage, loc: storage))
+            self.mixer.load_state_dict(
+                th.load(
+                    "{}/mixer.th".format(path),
+                    map_location=lambda storage, loc: storage,
+                )
+            )
+        self.optimiser.load_state_dict(
+            th.load("{}/opt.th".format(path), map_location=lambda storage, loc: storage)
+        )
 
     def soft_update_models(self, path, tau):
         self.mac.soft_update_model(path, tau)
@@ -186,9 +244,19 @@ class QLearner:
 
         if self.mixer is not None:
             source_mixer = copy.deepcopy(self.mixer)
-            source_mixer.load_state_dict(th.load("{}/mixer.th".format(path), map_location=lambda storage, loc: storage))
-            for target_param, param in zip(self.mixer.parameters(), source_mixer.parameters()):
+            source_mixer.load_state_dict(
+                th.load(
+                    "{}/mixer.th".format(path),
+                    map_location=lambda storage, loc: storage,
+                )
+            )
+            for target_param, param in zip(
+                self.mixer.parameters(), source_mixer.parameters()
+            ):
                 target_param.data.copy_(
-                    target_param.data * (1.0 - tau) + param.data * tau)
+                    target_param.data * (1.0 - tau) + param.data * tau
+                )
             self.target_mixer = copy.deepcopy(self.mixer)
-        self.optimiser.load_state_dict(th.load("{}/opt.th".format(path), map_location=lambda storage, loc: storage))
+        self.optimiser.load_state_dict(
+            th.load("{}/opt.th".format(path), map_location=lambda storage, loc: storage)
+        )

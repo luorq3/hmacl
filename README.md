@@ -17,14 +17,19 @@ Current validation evidence and remaining experiment gaps are tracked in
 - a framework-independent training state machine with total interaction
   accounting;
 - HMACL episode and multi-process parallel backends with dynamic task updates;
-- M2ALE map-size and VMAS Football variable-agent task adapters;
+- M2ALE map-size, VMAS Football, and PettingZoo Pursuit task adapters;
 - target-shaped zero padding and active-agent loss masks;
 - the paper's Football student network (`FC-256/GRU-256/FC-128`);
+- the paper's Pursuit convolutional student (`Conv-16/Conv-16`, then
+  `FC-256/GRU-256/FC-128`);
+- DyNA-style shared observation encoding and masked team aggregation for QMIX
+  and MAPPO;
 - deterministic unit tests and a runnable end-to-end smoke path.
 
 Football curricula scale both teams from 3 agents to a configurable target.
-The paper's 18-agent and 25-agent target interfaces are supported. Pursuit and
-the paper's DyNA architecture have not yet been reconstructed.
+The paper's 18-agent and 25-agent target interfaces are supported. Pursuit
+curricula vary square map size and pursuer count, including the paper's 60-20
+and 80-30 targets.
 
 ## Setup
 
@@ -73,7 +78,12 @@ Results, dispatcher state, step accounting, and model checkpoints are written
 under `runs/<experiment>/`. For five-seed configurations, run
 `scripts/run_matdd_m2ale.sh [qmix|ippo|mappo]` or
 `scripts/run_matdd_football.sh [qmix|ippo|mappo] [18|25]` from the repository
-root.
+root. Pursuit uses:
+
+```bash
+scripts/run_matdd_pursuit.sh qmix 60-20
+scripts/run_matdd_pursuit_smoke.sh
+```
 
 ## Reproducibility note
 

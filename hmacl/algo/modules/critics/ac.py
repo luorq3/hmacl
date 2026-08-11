@@ -1,3 +1,4 @@
+import numpy as np
 import torch as th
 import torch.nn as nn
 import torch.nn.functional as F
@@ -29,19 +30,24 @@ class ACCritic(nn.Module):
     def _build_inputs(self, batch, t=None):
         bs = batch.batch_size
         max_t = batch.max_seq_length if t is None else 1
-        ts = slice(None) if t is None else slice(t, t+1)
+        ts = slice(None) if t is None else slice(t, t + 1)
         inputs = []
         # observations
-        inputs.append(batch["obs"][:, ts])
+        inputs.append(batch["obs"][:, ts].reshape(bs, max_t, self.n_agents, -1))
 
-        inputs.append(th.eye(self.n_agents, device=batch.device).unsqueeze(0).unsqueeze(0).expand(bs, max_t, -1, -1))
+        inputs.append(
+            th.eye(self.n_agents, device=batch.device)
+            .unsqueeze(0)
+            .unsqueeze(0)
+            .expand(bs, max_t, -1, -1)
+        )
 
         inputs = th.cat(inputs, dim=-1)
         return inputs, bs, max_t
 
     def _get_input_shape(self, scheme):
         # observations
-        input_shape = scheme["obs"]["vshape"]
+        input_shape = int(np.prod(scheme["obs"]["vshape"]))
         # agent id
         input_shape += self.n_agents
         return input_shape

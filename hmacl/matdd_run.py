@@ -13,6 +13,7 @@ import torch
 from hmacl.config import get_config
 from hmacl.matdd.adapters.football import FootballTaskAdapter
 from hmacl.matdd.adapters.m2ale import M2ALETaskAdapter
+from hmacl.matdd.adapters.pursuit import PursuitTaskAdapter
 from hmacl.matdd.designer import PPOCurriculumDesigner, RandomCurriculumDesigner
 from hmacl.matdd.dispatcher import CurriculumDispatcher
 from hmacl.matdd.hmacl_backend import build_hmacl_backend
@@ -35,6 +36,7 @@ def get_parser():
     parser.add_argument("--designer", choices=("ppo", "random"), default="ppo")
     parser.add_argument("--batch_size_run", type=int, default=1)
     parser.add_argument("--target_agents", type=int, default=None)
+    parser.add_argument("--target_map_size", type=int, default=None)
     parser.add_argument("--episode_limit", type=int, default=None)
     parser.add_argument(
         "--student_architecture",
@@ -44,8 +46,14 @@ def get_parser():
     parser.add_argument("--matdd_encoder_dim", type=int, default=256)
     parser.add_argument("--matdd_recurrent_dim", type=int, default=256)
     parser.add_argument("--matdd_projection_dim", type=int, default=128)
+    parser.add_argument("--matdd_conv_channels", type=int, default=16)
     parser.add_argument("--student_gamma", type=float, default=None)
     parser.add_argument("--student_grad_norm_clip", type=float, default=None)
+    parser.add_argument(
+        "--state_encoder", choices=("auto", "dyna", "padded"), default="auto"
+    )
+    parser.add_argument("--dyna_hidden_dim", type=int, default=128)
+    parser.add_argument("--dyna_embedding_dim", type=int, default=64)
     parser.add_argument("--curriculum_iterations", type=int, default=80)
     parser.add_argument("--steps_per_curriculum", type=int, default=50000)
     parser.add_argument("--final_target_steps", type=int, default=50000)
@@ -71,14 +79,22 @@ def main():
     config_dict = load_config_dict(cli_args)
     args_sanity_check(config_dict, logger)
     args = SimpleNamespace(**config_dict)
-    if args.student_architecture == "paper" or (
-        args.student_architecture == "auto" and args.env == "vmas"
-    ):
-        args.agent = "matdd_rnn"
+    if args.student_architecture != "legacy":
+        if args.env == "vmas":
+            args.agent = "matdd_rnn"
+        elif args.env == "pursuit":
+            args.agent = "matdd_conv"
     if args.student_gamma is not None:
         args.gamma = args.student_gamma
     if args.student_grad_norm_clip is not None:
         args.grad_norm_clip = args.student_grad_norm_clip
+    use_dyna = args.state_encoder == "dyna" or (
+        args.state_encoder == "auto" and args.env in {"pursuit", "vmas"}
+    )
+    if use_dyna and args.name == "qmix":
+        args.mixer = "dyna_qmix"
+    elif use_dyna and args.name == "mappo":
+        args.critic_type = "dyna_cv_critic"
     args.device = "cuda" if args.use_cuda else "cpu"
     _seed_everything(args.seed)
     _prepare_run_directory(args)
@@ -167,7 +183,17 @@ def _build_adapter(args):
             config["max_steps"] = args.episode_limit
         args.env_args = config
         return FootballTaskAdapter(config)
-    raise ValueError("MATDD supports env='m2ale' or env='vmas'")
+    if args.env == "pursuit":
+        config = dict(args.env_args)
+        if args.target_map_size is not None:
+            config["target_map_size"] = args.target_map_size
+        if args.target_agents is not None:
+            config["target_n_pursuers"] = args.target_agents
+        if args.episode_limit is not None:
+            config["max_cycles"] = args.episode_limit
+        args.env_args = config
+        return PursuitTaskAdapter(config)
+    raise ValueError("MATDD supports env='m2ale', env='vmas', or env='pursuit'")
 
 
 def _prepare_run_directory(args):

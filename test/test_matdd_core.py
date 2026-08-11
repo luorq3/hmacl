@@ -15,15 +15,32 @@ except ImportError:
 else:
     VMAS_AVAILABLE = True
 
+try:
+    from pettingzoo.sisl import pursuit_v4  # noqa: F401
+except ImportError:
+    PETTINGZOO_AVAILABLE = False
+else:
+    PETTINGZOO_AVAILABLE = True
+
 if ML_DEPENDENCIES_AVAILABLE:
+    from hmacl.algo.envs.pursuit import PettingZooPursuitEnv
     from hmacl.algo.envs.vmas import VMASFootballEnv
+    from hmacl.algo.modules.agents.matdd_conv_agent import MATDDConvAgent
     from hmacl.algo.modules.agents.matdd_rnn_agent import MATDDRNNAgent
+    from hmacl.algo.modules.critics.dyna_central_v import DynaCentralVCritic
+    from hmacl.algo.modules.mixers.dyna_qmix import DynaQMixer
     from hmacl.matdd.adapters.football import FootballTaskAdapter
     from hmacl.matdd.adapters.padded_env import PaddedMultiAgentEnv
+    from hmacl.matdd.adapters.pursuit import PursuitTaskAdapter
 else:
     FootballTaskAdapter = None
+    MATDDConvAgent = None
     MATDDRNNAgent = None
+    DynaCentralVCritic = None
+    DynaQMixer = None
+    PettingZooPursuitEnv = None
     PaddedMultiAgentEnv = None
+    PursuitTaskAdapter = None
     VMASFootballEnv = None
 from hmacl.matdd.designer import (
     DesignerContext,
@@ -99,6 +116,28 @@ class FootballTaskAdapterTest(unittest.TestCase):
         self.assertNotIn("scale_red_team", config)
 
 
+@unittest.skipUnless(ML_DEPENDENCIES_AVAILABLE, "NumPy is not installed")
+class PursuitTaskAdapterTest(unittest.TestCase):
+    def test_maps_two_normalized_parameters_to_square_pursuit(self):
+        adapter = PursuitTaskAdapter(
+            {
+                "x_size": 16,
+                "y_size": 16,
+                "n_pursuers": 8,
+                "n_evaders": 30,
+                "target_map_size": 60,
+                "target_n_pursuers": 20,
+                "scale_n_evaders": False,
+            }
+        )
+        config = adapter.env_config({"map_size": 40, "n_pursuers": 14})
+        self.assertEqual(config["x_size"], 40)
+        self.assertEqual(config["y_size"], 40)
+        self.assertEqual(config["n_pursuers"], 14)
+        self.assertEqual(config["n_evaders"], 30)
+        self.assertEqual(adapter.space.dimension, 2)
+
+
 @unittest.skipUnless(ML_DEPENDENCIES_AVAILABLE, "PyTorch is not installed")
 class MATDDRNNAgentTest(unittest.TestCase):
     def test_matches_paper_layer_dimensions(self):
@@ -117,6 +156,83 @@ class MATDDRNNAgentTest(unittest.TestCase):
         self.assertEqual(output.shape, (6, 9))
         self.assertEqual(hidden.shape, (6, 256))
         self.assertEqual(agent.fc2.out_features, 128)
+
+
+@unittest.skipUnless(ML_DEPENDENCIES_AVAILABLE, "PyTorch is not installed")
+class MATDDConvAgentTest(unittest.TestCase):
+    def test_extracts_144_spatial_features_before_recurrent_stack(self):
+        from types import SimpleNamespace
+
+        agent = MATDDConvAgent(
+            147 + 20,
+            SimpleNamespace(
+                n_actions=5,
+                obs_shape=(7, 7, 3),
+                matdd_conv_channels=16,
+                matdd_encoder_dim=256,
+                matdd_recurrent_dim=256,
+                matdd_projection_dim=128,
+            ),
+        )
+        output, hidden = agent(torch.zeros(6, 167), agent.init_hidden().repeat(6, 1))
+        self.assertEqual(output.shape, (6, 5))
+        self.assertEqual(hidden.shape, (6, 256))
+        self.assertEqual(agent.fc1.in_features, 144 + 20)
+
+
+@unittest.skipUnless(ML_DEPENDENCIES_AVAILABLE, "PyTorch is not installed")
+class DynaNetworkTest(unittest.TestCase):
+    class FakeBatch:
+        def __init__(self, obs, agent_mask):
+            self.data = {"obs": obs, "agent_mask": agent_mask}
+            self.scheme = {"obs": {}, "agent_mask": {}}
+            self.batch_size = obs.shape[0]
+            self.max_seq_length = obs.shape[1]
+            self.device = obs.device
+
+        def __getitem__(self, key):
+            return self.data[key]
+
+    def test_qmix_ignores_masked_agent_content(self):
+        from types import SimpleNamespace
+
+        args = SimpleNamespace(
+            n_agents=4,
+            obs_shape=(2,),
+            mixing_embed_dim=8,
+            hypernet_embed=16,
+            dyna_hidden_dim=8,
+            dyna_embedding_dim=6,
+        )
+        mixer = DynaQMixer(args)
+        observations = torch.randn(1, 3, 4, 2)
+        agent_qs = torch.randn(1, 3, 4)
+        mask = torch.tensor([[[1.0, 1.0, 0.0, 0.0]] * 3])
+        changed_obs = observations.clone()
+        changed_obs[:, :, 2:] = 1000.0
+        changed_qs = agent_qs.clone()
+        changed_qs[:, :, 2:] = -1000.0
+        first = mixer(agent_qs, observations=observations, agent_mask=mask)
+        second = mixer(changed_qs, observations=changed_obs, agent_mask=mask)
+        self.assertTrue(torch.allclose(first, second, atol=1e-6))
+
+    def test_central_critic_ignores_masked_agent_observations(self):
+        from types import SimpleNamespace
+
+        args = SimpleNamespace(
+            n_agents=4,
+            hidden_dim=16,
+            dyna_hidden_dim=8,
+            dyna_embedding_dim=6,
+        )
+        critic = DynaCentralVCritic({"obs": {"vshape": (2,)}}, args)
+        observations = torch.randn(1, 3, 4, 2)
+        mask = torch.tensor([[[[1.0], [1.0], [0.0], [0.0]]] * 3])
+        changed = observations.clone()
+        changed[:, :, 2:] = 1000.0
+        first = critic(self.FakeBatch(observations, mask))[:, :, :2]
+        second = critic(self.FakeBatch(changed, mask))[:, :, :2]
+        self.assertTrue(torch.allclose(first, second, atol=1e-6))
 
 
 class DispatcherTest(unittest.TestCase):
@@ -323,6 +439,49 @@ class VMASFootballEnvTest(unittest.TestCase):
             env.reset()
             self.assertEqual(env.n_agents, 3)
             self.assertEqual(env.get_obs().shape[0], 3)
+        finally:
+            env.close()
+
+
+@unittest.skipUnless(
+    ML_DEPENDENCIES_AVAILABLE and PETTINGZOO_AVAILABLE,
+    "PettingZoo Pursuit dependencies are not installed",
+)
+class PettingZooPursuitEnvTest(unittest.TestCase):
+    def test_spatial_state_and_population_rebuild(self):
+        base_config = {
+            "map_name": "sisl",
+            "scenario": "pursuit",
+            "seed": 11,
+            "max_cycles": 2,
+            "x_size": 16,
+            "y_size": 16,
+            "shared_reward": True,
+            "n_evaders": 6,
+            "n_pursuers": 4,
+            "obs_range": 7,
+            "n_catch": 2,
+            "freeze_evaders": False,
+            "tag_reward": 0.01,
+            "catch_reward": 5.0,
+            "urgency_reward": -0.1,
+            "surround": True,
+            "constraint_window": 1.0,
+        }
+        env = PettingZooPursuitEnv(**base_config)
+        try:
+            env.reset()
+            self.assertEqual(env.get_obs().shape, (4, 7, 7, 3))
+            self.assertEqual(env.get_state().shape, (16, 16, 3))
+            env.step([4] * 4)
+            _, terminated, info = env.step([4] * 4)
+            self.assertTrue(terminated)
+            self.assertTrue(info["episode_limit"])
+
+            env.update(dict(base_config, x_size=20, y_size=20, n_pursuers=5))
+            env.reset()
+            self.assertEqual(env.get_obs().shape, (5, 7, 7, 3))
+            self.assertEqual(env.get_state().shape, (20, 20, 3))
         finally:
             env.close()
 

@@ -32,6 +32,17 @@ and places the recovered algorithm under `hmacl/matdd/`.
 8. Football students default to the manuscript's `FC(256) -> GRU(256) ->
    FC(128) -> output` policy network. `--student_architecture legacy` retains
    the original single-width HMACL agent for controlled comparisons.
+9. Pursuit uses two integer free parameters: square map size and pursuer count.
+   The current SISL environment is rebuilt between curricula, while a padded
+   target interface keeps the agent slots and spatial state shape fixed.
+   Evaders remain at the historical default of 30 unless
+   `scale_n_evaders=true` is set explicitly.
+10. Pursuit students use two valid 3x3, 16-channel convolutions over each
+    7x7x3 observation, producing 144 spatial features before the same
+    `FC(256) -> GRU(256) -> FC(128)` stack. For variable teams, `dyna_qmix`
+    conditions its monotonic mixer on a masked mean of shared observation
+    embeddings; `dyna_cv_critic` combines each agent's embedding with the
+    masked mean embedding of its teammates.
 
 The run entry point saves protagonist, antagonist, and PPO teacher checkpoints
 alongside `matdd_result.json` so the recovered training state is inspectable.
@@ -41,16 +52,18 @@ alongside `matdd_result.json` so the recovered training state is inspectable.
 - The manuscript did not define the teacher observation, replay eviction, or
   PPO rollout/update schedule. The choices above are explicit recovery
   decisions and must be reported as such.
-- `M2ALETaskAdapter` remains a map-size integration environment. VMAS Football
-  now supports variable agent counts, target-shaped padding, active-agent loss
-  masks, dynamic parallel-worker updates, return/win-rate metrics, and both
-  paper target sizes.
-- SISL/PettingZoo Pursuit has not been restored. Its grid-size and pursuer-count
-  task space, image observations, and convolutional encoder remain necessary
-  for the Pursuit-60-20 and Pursuit-80-30 experiments.
-- The manuscript describes DyNA aggregation for changing team sizes. The
-  recovered implementation currently uses target-shaped zero padding plus
-  active-agent masks, which is testable but is not an implementation of DyNA.
+- `M2ALETaskAdapter` remains a map-size integration environment. Football and
+  Pursuit support target-shaped padding, active-agent loss masks, dynamic
+  parallel-worker updates, and all target interfaces reported in the paper.
+- PettingZoo does not expose a public Pursuit `state()` implementation. The
+  adapter therefore reads the current SISL model's first three spatial state
+  channels. This dependency on a PettingZoo internal is isolated in
+  `hmacl/algo/envs/pursuit.py` and covered by an interface test.
+- The manuscript specifies shared DyNA extraction and fixed-size aggregation,
+  but not the aggregation operator or embedding widths. Masked mean pooling,
+  a 128-unit encoder, and a 64-dimensional embedding are explicit recovery
+  choices. `--state_encoder padded` retains the earlier global-state path for
+  ablation.
 - The exact historical VMAS release is unknown. Recovery targets VMAS 1.5.x;
   its Boolean `dense_reward` option replaces the removed `dense_reward_ratio`.
 - The legacy environments and action selectors use process-global random

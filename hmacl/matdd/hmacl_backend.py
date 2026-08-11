@@ -146,6 +146,7 @@ def build_hmacl_backend(all_args, logger, adapter, role, seed_offset=0):
     env_info = raw_target_env.get_env_info()
     args.n_agents = env_info["n_agents"]
     args.n_actions = env_info["n_actions"]
+    args.obs_shape = env_info["obs_shape"]
     args.state_shape = env_info["state_shape"]
     if getattr(args, "cps", False):
         args.ap2cp = raw_target_env.get_classes()
