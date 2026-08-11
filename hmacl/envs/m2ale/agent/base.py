@@ -5,7 +5,7 @@
 3: scout drone
 """
 from hmacl.envs.m2ale.agent.util import merge_visible_units
-from gym import spaces
+from gymnasium import spaces
 import numpy as np
 
 

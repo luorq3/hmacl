@@ -2,7 +2,7 @@ import random
 import sys
 
 import numpy as np
-from gym import spaces
+from gymnasium import spaces
 import logging
 
 from hmacl.envs.m2ale.util import load_scenario_conf

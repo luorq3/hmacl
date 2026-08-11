@@ -91,7 +91,10 @@ class Algo:
 
             # Execute test runs once in a while
             n_test_runs = max(1, self.args.test_nepisode // self.runner.batch_size)
-            if (self.runner.t_env - self.last_test_T) / self.args.test_interval >= 1.0:
+            if (
+                getattr(self.args, "enable_periodic_test", True)
+                and (self.runner.t_env - self.last_test_T) / self.args.test_interval >= 1.0
+            ):
 
                 self.logger.console_logger.info(
                     "t_env: {} / {}".format(self.runner.t_env, self.args.t_max)
@@ -110,7 +113,10 @@ class Algo:
 
             # Execute evaluate in target task once in a while
             n_eval_runs = max(1, self.args.eval_nepisode // self.runner.batch_size)
-            if (self.runner.t_env - self.last_eval_T) / self.args.eval_interval >= 1.0:
+            if (
+                getattr(self.args, "enable_periodic_target_eval", True)
+                and (self.runner.t_env - self.last_eval_T) / self.args.eval_interval >= 1.0
+            ):
                 self.last_eval_T = self.runner.t_env
                 for _ in range(n_eval_runs):
                     self.runner.run(test_mode=True, test_tag=True)

@@ -23,6 +23,7 @@ class EpisodeRunner:
         self.train_stats = {}
         self.test_stats = {}
         self.tag_stats = {}
+        self.last_episode_return = None
 
         # Log the first run
         self.log_train_stats_t = -1000000
@@ -37,6 +38,7 @@ class EpisodeRunner:
         self.new_batch = partial(EpisodeBatch, scheme, groups, self.batch_size, self.episode_limit + 1,
                                  preprocess=preprocess, device=self.args.device)
         self.mac = mac
+        self.has_agent_mask = "agent_mask" in scheme
 
     def get_env_info(self):
         return self.env.get_env_info()
@@ -72,6 +74,8 @@ class EpisodeRunner:
                 "avail_actions": [env.get_avail_actions()],
                 "obs": [env.get_obs()]
             }
+            if self.has_agent_mask:
+                pre_transition_data["agent_mask"] = [env.get_agent_mask()]
 
             self.batch.update(pre_transition_data, ts=self.t)
 
@@ -99,6 +103,8 @@ class EpisodeRunner:
             "avail_actions": [env.get_avail_actions()],
             "obs": [env.get_obs()]
         }
+        if self.has_agent_mask:
+            last_data["agent_mask"] = [env.get_agent_mask()]
         if test_mode and self.args.render:
             print(f"Episode return: {episode_return}")
         self.batch.update(last_data, ts=self.t)
@@ -124,6 +130,7 @@ class EpisodeRunner:
             self.t_env += self.t
 
         cur_returns.append(episode_return)
+        self.last_episode_return = episode_return
 
         if test_mode:
             if test_tag and len(self.tag_returns) == self.args.eval_nepisode:

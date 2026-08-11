@@ -50,13 +50,15 @@ class PPOLearner:
             self.rew_ms.update(rewards)
             rewards = (rewards - self.rew_ms.mean) / th.sqrt(self.rew_ms.var)
 
+        mask = mask.repeat(1, 1, self.n_agents)
+        if "agent_mask" in batch.scheme:
+            mask = mask * batch["agent_mask"][:, :-1].squeeze(-1)
+
         # No experiences to train on in this minibatch
         if mask.sum() == 0:
             self.logger.log_stat("Mask_Sum_Zero", 1, t_env)
-            self.logger.console_logger.error("Actor Critic Learner: mask.sum() == 0 at t_env {}".format(t_env))
-            return
-
-        mask = mask.repeat(1, 1, self.n_agents)
+            self.logger.console_logger.error("PPO Learner: mask.sum() == 0 at t_env {}".format(t_env))
+            return 0.0
 
         critic_mask = mask.clone()
 
@@ -124,6 +126,9 @@ class PPOLearner:
             self.logger.log_stat("agent_grad_norm", grad_norm.item(), t_env)
             self.logger.log_stat("pi_max", (pi.max(dim=-1)[0] * mask).sum().item() / mask.sum().item(), t_env)
             self.log_stats_t = t_env
+        return sum(critic_train_stats["td_error_abs"]) / len(
+            critic_train_stats["td_error_abs"]
+        )
 
     def train_critic_sequential(self, critic, target_critic, batch, rewards, mask):
         # Optimise critic

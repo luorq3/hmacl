@@ -50,6 +50,11 @@ class QLearner:
         mask = batch["filled"][:, :-1].float()
         mask[:, 1:] = mask[:, 1:] * (1 - terminated[:, :-1])
         avail_actions = batch["avail_actions"]
+        agent_mask = None
+        next_agent_mask = None
+        if "agent_mask" in batch.scheme:
+            agent_mask = batch["agent_mask"][:, :-1].squeeze(-1)
+            next_agent_mask = batch["agent_mask"][:, 1:].squeeze(-1)
 
         if self.args.standardise_rewards:
             self.rew_ms.update(rewards)
@@ -90,6 +95,9 @@ class QLearner:
 
         # Mix
         if self.mixer is not None:
+            if agent_mask is not None:
+                chosen_action_qvals = chosen_action_qvals * agent_mask
+                target_max_qvals = target_max_qvals * next_agent_mask
             chosen_action_qvals = self.mixer(chosen_action_qvals, batch["state"][:, :-1])
             target_max_qvals = self.target_mixer(target_max_qvals, batch["state"][:, 1:])
 
@@ -107,6 +115,8 @@ class QLearner:
         td_error = (chosen_action_qvals - targets.detach())
 
         mask = mask.expand_as(td_error)
+        if agent_mask is not None and self.mixer is None:
+            mask = mask * agent_mask
 
         # 0-out the targets that came from padded data
         masked_td_error = td_error * mask
